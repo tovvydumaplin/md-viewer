@@ -549,6 +549,7 @@
     <div class="spacer"></div>
     <button id="themeToggle" type="button" title="Toggle theme">🌙</button>
     <button id="printPdf" type="button">Print to PDF</button>
+    <button id="copyPlainText" type="button">Copy Plain Text</button>
     <button id="copyHtml" type="button">Copy HTML</button>
     <button id="copyMd" type="button">Copy MD</button>
     <button id="clear" type="button">Clear</button>
@@ -740,6 +741,7 @@
 
   const copyMd = document.getElementById("copyMd");
   const copyHtml = document.getElementById("copyHtml");
+  const copyPlainText = document.getElementById("copyPlainText");
   const clear = document.getElementById("clear");
   const themeToggle = document.getElementById("themeToggle");
   const printPdf = document.getElementById("printPdf");
@@ -838,6 +840,7 @@
     const hasText = md.value.trim().length > 0;
     copyMd.disabled = !hasText;
     copyHtml.disabled = !hasText;
+    copyPlainText.disabled = !hasText;
     clear.disabled = !hasText;
     printPdf.disabled = !hasText;
 
@@ -876,6 +879,13 @@
     if (!md.value.trim()) return;
     window.print();
     notify("Print dialog opened 🖨️");
+  });
+
+  copyPlainText.addEventListener("click", () => {
+    if (!preview.textContent.trim()) return;
+    // Get plain text from preview (strips all HTML)
+    const plainText = preview.innerText || preview.textContent;
+    copyText(plainText, "Plain text");
   });
 
   copyMd.addEventListener("click", () => copyText(md.value || "", "Markdown"));
