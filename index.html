@@ -135,14 +135,15 @@
     }
 
     /* Scrollbars */
-    textarea, #preview, #preview pre, #mdCardsContainer {
+    textarea, #preview, #preview pre, #mdCardsContainer, .content {
       scrollbar-width: thin;
       scrollbar-color: var(--scroll-thumb) var(--scroll-track);
     }
     textarea::-webkit-scrollbar,
     #preview::-webkit-scrollbar,
     #preview pre::-webkit-scrollbar,
-    #mdCardsContainer::-webkit-scrollbar{
+    #mdCardsContainer::-webkit-scrollbar,
+    .content::-webkit-scrollbar{
       width: 10px;
       height: 10px;
       background: transparent;
@@ -150,7 +151,8 @@
     textarea::-webkit-scrollbar-track,
     #preview::-webkit-scrollbar-track,
     #preview pre::-webkit-scrollbar-track,
-    #mdCardsContainer::-webkit-scrollbar-track{
+    #mdCardsContainer::-webkit-scrollbar-track,
+    .content::-webkit-scrollbar-track{
       background: var(--scroll-track);
       border-radius: 999px;
       margin: 4px 0;
@@ -158,7 +160,8 @@
     textarea::-webkit-scrollbar-thumb,
     #preview::-webkit-scrollbar-thumb,
     #preview pre::-webkit-scrollbar-thumb,
-    #mdCardsContainer::-webkit-scrollbar-thumb{
+    #mdCardsContainer::-webkit-scrollbar-thumb,
+    .content::-webkit-scrollbar-thumb{
       background: var(--scroll-thumb);
       border-radius: 999px;
       border: 2px solid transparent;
@@ -167,14 +170,16 @@
     textarea::-webkit-scrollbar-thumb:hover,
     #preview::-webkit-scrollbar-thumb:hover,
     #preview pre::-webkit-scrollbar-thumb:hover,
-    #mdCardsContainer::-webkit-scrollbar-thumb:hover{
+    #mdCardsContainer::-webkit-scrollbar-thumb:hover,
+    .content::-webkit-scrollbar-thumb:hover{
       background: rgba(255,255,255,.40);
       background-clip: padding-box;
     }
     [data-theme="light"] textarea::-webkit-scrollbar-thumb:hover,
     [data-theme="light"] #preview::-webkit-scrollbar-thumb:hover,
     [data-theme="light"] #preview pre::-webkit-scrollbar-thumb:hover,
-    [data-theme="light"] #mdCardsContainer::-webkit-scrollbar-thumb:hover{
+    [data-theme="light"] #mdCardsContainer::-webkit-scrollbar-thumb:hover,
+    [data-theme="light"] .content::-webkit-scrollbar-thumb:hover{
       background: rgba(0,0,0,.40);
       background-clip: padding-box;
     }
@@ -330,15 +335,21 @@
           class="rounded-lg border px-3 py-2 text-xs w-full active:translate-y-px transition"
           style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
         >Clear</button>
+
+        <!-- TOC Section in Mobile Menu -->
+        <div class="mt-6 pt-6 border-t" style="border-color: var(--border);">
+          <div class="text-xs opacity-85 mb-3" style="color: var(--text);">Table of Contents</div>
+          <div id="tocListMobile" class="flex flex-col gap-2"></div>
+        </div>
       </div>
     </div>
 
     <!-- Content -->
-    <div class="content flex-1 min-h-0 overflow-hidden">
+    <div class="content flex-1 min-h-0 max-[900px]:overflow-auto md:overflow-hidden">
       <!-- ✅ Responsive: stack on mobile, 2 columns on md+ -->
-      <div class="wrap h-full grid gap-3 p-3 box-border grid-cols-1 md:grid-cols-[280px_1fr] md:gap-3">
+      <div class="wrap md:h-full grid gap-3 p-3 box-border grid-cols-1 md:grid-cols-[280px_1fr] md:gap-3">
         <!-- Left column -->
-        <div class="editorCol h-full flex flex-col gap-3 min-h-0">
+        <div class="editorCol md:h-full flex flex-col gap-3 min-h-0">
           <!-- Cards (desktop: 70% height) (mobile: fixed-ish height) -->
           <div class="min-h-0 overflow-hidden border"
                style="border-color: var(--border); background: var(--sidebar);">
@@ -360,22 +371,22 @@ Whether you’re here to explore, contribute, or maintain the project — you’
           </div>
         </div>
 
-        <!-- Right column -->
-        <div class="h-full flex flex-col gap-3 min-h-0">
-          <!-- TOC -->
+        <!-- Right column (sticky on mobile) -->
+        <div class="md:h-full flex flex-col gap-3 min-h-0 max-[900px]:sticky max-[900px]:top-0 max-[900px]:z-10">
+          <!-- TOC Pills (Desktop only) -->
           <div id="toc"
-               class="shrink-0 border p-3 flex items-center gap-3"
+               class="shrink-0 border p-3 flex items-center gap-3 max-[900px]:hidden"
                style="border-color: var(--border); background: rgba(2,6,23,.55);">
             <div class="min-w-0 shrink-0">
               <div class="text-xs opacity-85">Sections</div>
               <div class="text-[11px] opacity-65">Click a pill to jump</div>
             </div>
-            <div id="tocList" class="flex gap-2 flex-wrap max-[900px]:flex-nowrap max-[900px]:overflow-x-auto max-[900px]:overflow-y-hidden" style="scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) var(--scroll-track);"></div>
+            <div id="tocList" class="flex gap-2 flex-wrap" style="scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) var(--scroll-track);"></div>
           </div>
 
           <!-- Preview -->
           <div id="preview"
-               class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden border p-6"
+               class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden border p-6 max-[900px]:max-h-[70vh]"
                style="border-color: var(--border); background: var(--panel);"></div>
         </div>
       </div>
@@ -530,6 +541,7 @@ Whether you’re here to explore, contribute, or maintain the project — you’
     const themeToggle = document.getElementById("themeToggle");
     const printPdf = document.getElementById("printPdf");
     const tocList = document.getElementById("tocList");
+    const tocListMobile = document.getElementById("tocListMobile");
 
     // Hamburger menu elements
     const hamburgerMenu = document.getElementById("hamburgerMenu");
@@ -660,6 +672,7 @@ Whether you’re here to explore, contribute, or maintain the project — you’
 
     function buildTOC(){
       tocList.innerHTML = "";
+      tocListMobile.innerHTML = "";
       const headings = preview.querySelectorAll("h2");
 
       if (!headings.length){
@@ -667,6 +680,11 @@ Whether you’re here to explore, contribute, or maintain the project — you’
         empty.className = "text-xs opacity-65";
         empty.textContent = "No sections found (add ## headings).";
         tocList.appendChild(empty);
+        
+        const emptyMobile = document.createElement("span");
+        emptyMobile.className = "text-xs opacity-65";
+        emptyMobile.textContent = "No sections found (add ## headings).";
+        tocListMobile.appendChild(emptyMobile);
         return;
       }
 
@@ -678,6 +696,7 @@ Whether you’re here to explore, contribute, or maintain the project — you’
           h.id = id;
         }
 
+        // Desktop TOC button
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "px-3 py-1.5 rounded-full text-xs border transition active:translate-y-px whitespace-nowrap";
@@ -686,8 +705,21 @@ Whether you’re here to explore, contribute, or maintain the project — you’
         btn.style.color = "var(--text)";
         btn.textContent = h.textContent.trim() || `Section ${idx+1}`;
         btn.addEventListener("click", () => scrollPreviewToHeading(h));
-
         tocList.appendChild(btn);
+
+        // Mobile TOC button (full width)
+        const btnMobile = document.createElement("button");
+        btnMobile.type = "button";
+        btnMobile.className = "px-3 py-2 rounded-lg text-xs border transition active:translate-y-px w-full text-left";
+        btnMobile.style.borderColor = "var(--border)";
+        btnMobile.style.background = "rgba(255,255,255,.06)";
+        btnMobile.style.color = "var(--text)";
+        btnMobile.textContent = h.textContent.trim() || `Section ${idx+1}`;
+        btnMobile.addEventListener("click", () => {
+          scrollPreviewToHeading(h);
+          closeMenuFn();
+        });
+        tocListMobile.appendChild(btnMobile);
       });
     }
 
