@@ -118,6 +118,18 @@
       border-radius: 10px;
       scroll-margin-top: 20px;
     }
+
+    /* Mobile font sizes */
+    @media (max-width: 899px) {
+      #preview h1{font-size:22px;}
+      #preview h2{font-size:18px;}
+      #preview h3{font-size:14px;}
+      #preview h4{font-size:13px;}
+      #preview h5{font-size:12px;}
+      #preview h6{font-size:11px;}
+      #preview p{font-size:13px;}
+      #preview ul, #preview ol{font-size:13px;}
+    }
     [data-theme="light"] .highlightJump{
       outline: 2px solid rgba(59,130,246,.45);
     }
@@ -336,7 +348,7 @@
           <!-- Textarea -->
           <div class="min-h-0 flex flex-col md:flex-[3_1_0]">
             <textarea id="md" placeholder="Paste markdown here..."
-              class="w-full min-h-0 resize-none border p-3 outline-none text-xs leading-relaxed h-[28vh] md:h-full"
+              class="w-full min-h-0 resize-none border p-3 outline-none text-xs leading-relaxed md:h-full transition-all duration-300"
               style="border-color: var(--border); background: var(--sidebar); color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"
             ># 👋 Welcome
 
@@ -553,6 +565,42 @@ Whether you’re here to explore, contribute, or maintain the project — you’
     copyHtmlMobile.addEventListener('click', () => { closeMenuFn(); copyHtml.click(); });
     copyMdMobile.addEventListener('click', () => { closeMenuFn(); copyMd.click(); });
     clearMobile.addEventListener('click', () => { closeMenuFn(); clear.click(); });
+
+    // Textarea expand/collapse on mobile
+    const textarea = document.getElementById('md');
+    
+    function expandTextarea() {
+      const isMobile = window.innerWidth < 900;
+      if (isMobile) {
+        textarea.classList.remove('h-[12vh]', 'h-[28vh]');
+        textarea.classList.add('h-[40vh]');
+      }
+    }
+    
+    function collapseTextarea() {
+      const isMobile = window.innerWidth < 900;
+      if (isMobile) {
+        textarea.classList.remove('h-[40vh]', 'h-[28vh]');
+        textarea.classList.add('h-[12vh]');
+      }
+    }
+    
+    function handleTextareaResize() {
+      const isMobile = window.innerWidth < 900;
+      if (!isMobile) {
+        textarea.classList.remove('h-[12vh]', 'h-[40vh]');
+        textarea.classList.add('h-[28vh]');
+      } else if (document.activeElement === textarea) {
+        expandTextarea();
+      } else {
+        collapseTextarea();
+      }
+    }
+    
+    textarea.addEventListener('focus', expandTextarea);
+    textarea.addEventListener('blur', collapseTextarea);
+    window.addEventListener('resize', handleTextareaResize);
+    handleTextareaResize(); // Initial setup
 
     document.getElementById("year").textContent = new Date().getFullYear();
 
