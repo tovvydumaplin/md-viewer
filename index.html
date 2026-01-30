@@ -127,7 +127,7 @@
       background:var(--sidebar);
       color:var(--text);
       border:1px solid var(--border);
-      border-radius:14px;
+      border-radius:0;
 
       padding:12px;
       font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
@@ -156,7 +156,7 @@
     .toc{
       background: rgba(2,6,23,.55);
       border:1px solid var(--border);
-      border-radius:16px;
+      border-radius:0;
       padding:10px;
       display:flex;
       align-items:center;
@@ -209,7 +209,7 @@
     .preview{
       background:var(--panel);
       border:1px solid var(--border);
-      border-radius:16px;
+      border-radius:0;
       padding:26px;
 
       overflow-y:auto;
@@ -281,8 +281,96 @@
        Scrollbars
        ========================= */
 
+    /* MD Cards List */
+    #mdCardsContainer {
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px;
+      box-sizing: border-box;
+      
+    }
+
+
+    #mdCardsContainer::-webkit-scrollbar {
+      width: 10px;
+      background: transparent;
+    }
+
+    #mdCardsContainer::-webkit-scrollbar-track {
+      background: var(--scroll-track);
+      border-radius: 999px;
+      margin: 4px 0;
+    }
+
+    #mdCardsContainer::-webkit-scrollbar-thumb {
+      background: var(--scroll-thumb);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    #mdCardsContainer::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,.40);
+      background-clip: padding-box;
+    }
+
+    [data-theme="light"] #mdCardsContainer::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,0,0,.40);
+      background-clip: padding-box;
+    }
+
+    #mdCardsContainer::-webkit-scrollbar-button {
+      display: none !important;
+      height: 0 !important;
+      width: 0 !important;
+    }
+
+    #mdCardsContainer::-webkit-scrollbar-button:start:decrement,
+    #mdCardsContainer::-webkit-scrollbar-button:end:increment {
+      display: none !important;
+      height: 0 !important;
+      width: 0 !important;
+    }
+
+    #mdCardsContainer::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    .md-card {
+      background: var(--panel);
+      border: none;
+      border-radius: 0;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+
+    .md-card:hover {
+      background: rgba(147,197,253,.08);
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+
+    [data-theme="light"] .md-card:hover {
+      background: rgba(59,130,246,.08);
+    }
+
+    .md-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .md-card-preview {
+      font-size: 11px;
+      opacity: .65;
+      line-height: 1.4;
+    }
+
     /* Firefox */
-    textarea, .preview, .preview pre {
+    textarea, .preview, .preview pre, #mdCardsContainer {
       scrollbar-width: thin;
       scrollbar-color: var(--scroll-thumb) var(--scroll-track);
     }
@@ -290,21 +378,24 @@
     /* Chromium / Edge / Safari */
     textarea::-webkit-scrollbar,
     .preview::-webkit-scrollbar,
-    .preview pre::-webkit-scrollbar{
+    .preview pre::-webkit-scrollbar,
+    #mdCardsContainer::-webkit-scrollbar {
       width: 10px;
       height: 10px;
       background: transparent;
     }
     textarea::-webkit-scrollbar-track,
     .preview::-webkit-scrollbar-track,
-    .preview pre::-webkit-scrollbar-track{
+    .preview pre::-webkit-scrollbar-track,
+    #mdCardsContainer::-webkit-scrollbar-track {
       background: var(--scroll-track);
       border-radius: 999px;
       margin: 4px 0;
     }
     textarea::-webkit-scrollbar-thumb,
     .preview::-webkit-scrollbar-thumb,
-    .preview pre::-webkit-scrollbar-thumb{
+    .preview pre::-webkit-scrollbar-thumb,
+    #mdCardsContainer::-webkit-scrollbar-thumb {
       background: var(--scroll-thumb);
       border-radius: 999px;
       border: 2px solid transparent;
@@ -312,13 +403,15 @@
     }
     textarea::-webkit-scrollbar-thumb:hover,
     .preview::-webkit-scrollbar-thumb:hover,
-    .preview pre::-webkit-scrollbar-thumb:hover{
+    .preview pre::-webkit-scrollbar-thumb:hover,
+    #mdCardsContainer::-webkit-scrollbar-thumb:hover {
       background: rgba(255,255,255,.40);
       background-clip: padding-box;
     }
     [data-theme="light"] textarea::-webkit-scrollbar-thumb:hover,
     [data-theme="light"] .preview::-webkit-scrollbar-thumb:hover,
-    [data-theme="light"] .preview pre::-webkit-scrollbar-thumb:hover{
+    [data-theme="light"] .preview pre::-webkit-scrollbar-thumb:hover,
+    [data-theme="light"] #mdCardsContainer::-webkit-scrollbar-thumb:hover {
       background: rgba(0,0,0,.40);
       background-clip: padding-box;
     }
@@ -326,14 +419,16 @@
     /* Ensure corner is rounded */
     textarea::-webkit-scrollbar-corner,
     .preview::-webkit-scrollbar-corner,
-    .preview pre::-webkit-scrollbar-corner{
+    .preview pre::-webkit-scrollbar-corner,
+    #mdCardsContainer::-webkit-scrollbar-corner {
       background: transparent;
     }
 
     /* Remove scrollbar arrows/buttons */
     textarea::-webkit-scrollbar-button,
     .preview::-webkit-scrollbar-button,
-    .preview pre::-webkit-scrollbar-button{
+    .preview pre::-webkit-scrollbar-button,
+    #mdCardsContainer::-webkit-scrollbar-button {
       display: none;
       height: 0;
       width: 0;
@@ -399,6 +494,45 @@
       }
       .tocList{ justify-content:flex-start; }
     }
+
+
+    /* === Print Styles === */
+    @media print {
+      header, footer, .editorCol, .toc, .toast {
+        display: none !important;
+      }
+      .app, .content, .wrap {
+        display: block;
+        height: auto;
+        padding: 0;
+        overflow: visible;
+      }
+      .previewShell {
+        height: auto;
+        min-height: auto;
+        display: block;
+      }
+      .preview {
+        border: none;
+        padding: 20px;
+        height: auto !important;
+        min-height: auto;
+        overflow: visible !important;
+        flex: none;
+      }
+      body {
+        background: white;
+        color: black;
+      }
+      .preview h1, .preview h2, .preview h3 {
+        page-break-after: avoid;
+      }
+      .preview pre, .preview blockquote {
+        page-break-inside: avoid;
+      }
+    }
+
+  
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -414,6 +548,7 @@
     </div>
     <div class="spacer"></div>
     <button id="themeToggle" type="button" title="Toggle theme">🌙</button>
+    <button id="printPdf" type="button">Print to PDF</button>
     <button id="copyHtml" type="button">Copy HTML</button>
     <button id="copyMd" type="button">Copy MD</button>
     <button id="clear" type="button">Clear</button>
@@ -421,23 +556,22 @@
 
   <div class="content">
     <div class="wrap">
-      <div class="editorCol">
-        <textarea id="md" placeholder="Paste markdown here..."># Project Docs
+      <div class="editorCol" style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
+        <!-- Top 70%: Markdown Files List -->
+        <div style="flex: 7 1 0; min-height: 0; background: var(--sidebar); border: 1px solid var(--border); border-radius: 0; overflow: hidden;">
+          <div id="mdCardsContainer"></div>
+        </div>
+        
+        <!-- Bottom 30%: Paste Area -->
+        <div style="flex: 3 1 0; min-height: 0; display: flex; flex-direction: column;">
+          <textarea id="md" placeholder="Paste markdown here..." style="height: 100%; resize: none;"># 👋 Welcome
 
-## Complete Tech Stack
-- Backend: Laravel
-- Frontend: Vue + Tailwind
-- Auth: Sanctum
+          Welcome to this project!  
+          This repository contains the core codebase for the system and serves as the foundation for ongoing development, improvements, and future features.
 
-## API Docs
-### Auth
-- POST /api/login
-- POST /api/logout
-
-## Architecture
-- RBAC
-- Approval Workflow
-</textarea>
+          Whether you’re here to explore, contribute, or maintain the project — you’re in the right place.
+</textarea>   
+        </div>
       </div>
 
       <div class="previewShell">
@@ -456,8 +590,9 @@
 
   <footer>
     <span>©</span>
-    <span>Tovvy B. Dumaplin</span>
     <span id="year"></span>
+    <span>Tovvy B. Dumaplin. All rights reserved.</span>
+    
   </footer>
 </div>
 
@@ -469,11 +604,145 @@
   const md = document.getElementById("md");
   const preview = document.getElementById("preview");
   const toast = document.getElementById("toast");
+  const mdCardsContainer = document.getElementById("mdCardsContainer");
+
+  // List of Markdown files
+  let mdFiles = [];
+
+  // Fetch and display Markdown files
+  async function loadMarkdownFiles() {
+    mdFiles = [];
+    
+    // Fallback: static list with folder structure
+    const filePaths = [
+      'Markdown/Developer/CODING-STANDARDS.md',
+      'Markdown/Developer/TECH-STACK-PLAN.md',
+      'Markdown/Management/PROGRESS-REPORT-2026-01-30.md',
+      'Markdown/Management/PROJECT-OVERVIEW-FOR-MANAGEMENT.md'
+    ];
+
+    // Try to dynamically discover files
+    try {
+      const folders = ['Developer', 'Management'];
+      for (const folder of folders) {
+        try {
+          const res = await fetch(`Markdown/${folder}/`);
+          if (res.ok) {
+            const text = await res.text();
+            const matches = [...text.matchAll(/href=["']([^"']+\.md)["']/gi)];
+            matches.forEach(m => {
+              const filename = decodeURIComponent(m[1].split('/').pop());
+              const fullPath = `Markdown/${folder}/${filename}`;
+              if (!filePaths.includes(fullPath)) {
+                filePaths.push(fullPath);
+              }
+            });
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // Process all files
+    for (const path of filePaths) {
+      const parts = path.split('/');
+      const filename = parts[parts.length - 1];
+      const folder = parts[parts.length - 2];
+      
+      const file = {
+        name: filename,
+        path: path,
+        folder: folder
+      };
+
+      try {
+        const res = await fetch(file.path);
+        const text = await res.text();
+        const lines = text.split(/\r?\n/);
+        file.title = lines.find(l => l.trim().startsWith('#'))?.replace(/^#+\s*/, '') || file.name;
+        
+        // Get preview lines (project and date)
+        const contentLines = lines.filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('---'));
+        let previewParts = [];
+        
+        for (const line of contentLines.slice(0, 3)) {
+          // Remove markdown formatting
+          let cleaned = line
+            .replace(/\*\*([^*]+)\*\*/g, '$1')  // **bold**
+            .replace(/\*([^*]+)\*/g, '$1')      // *italic*
+            .replace(/__([^_]+)__/g, '$1')      // __bold__
+            .replace(/_([^_]+)_/g, '$1')        // _italic_
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // [link](url)
+            .replace(/`([^`]+)`/g, '$1')        // `code`
+            .trim();
+          
+          if (cleaned) previewParts.push(cleaned);
+          if (previewParts.length >= 2) break; // Get project and date
+        }
+        
+        file.preview = previewParts.join(' • ').substring(0, 100);
+      } catch {
+        file.title = file.name;
+        file.preview = '';
+      }
+
+      mdFiles.push(file);
+    }
+
+    renderMarkdownCards();
+  }
+
+  function renderMarkdownCards() {
+    mdCardsContainer.innerHTML = '';
+    
+    // Group files by folder
+    const grouped = {};
+    mdFiles.forEach(file => {
+      if (!grouped[file.folder]) grouped[file.folder] = [];
+      grouped[file.folder].push(file);
+    });
+
+    // Render each folder group
+    Object.keys(grouped).sort().forEach(folder => {
+      // Folder header
+      const folderHeader = document.createElement('div');
+      folderHeader.style = 'font-size: 11px; font-weight: 700; text-transform: uppercase; opacity: .6; margin: 12px 8px 8px 8px; letter-spacing: 0.5px;';
+      folderHeader.textContent = folder;
+      mdCardsContainer.appendChild(folderHeader);
+
+      // Render files in this folder
+      grouped[folder].forEach((file, idx) => {
+        const globalIdx = mdFiles.indexOf(file);
+        const card = document.createElement('div');
+        card.className = 'md-card';
+        card.innerHTML = `
+          <div class="md-card-title">${file.title}</div>
+          <div class="md-card-preview">${file.preview}</div>
+        `;
+        card.addEventListener('click', () => loadMarkdownFile(globalIdx));
+        mdCardsContainer.appendChild(card);
+      });
+    });
+  }
+
+  function loadMarkdownFile(idx) {
+    const file = mdFiles[idx];
+    fetch(file.path)
+      .then(res => res.text())
+      .then(mdText => {
+        md.value = mdText;
+        render();
+        notify(`Loaded: ${file.title}`);
+      })
+      .catch(() => {
+        notify('Failed to load file');
+      });
+  }
 
   const copyMd = document.getElementById("copyMd");
   const copyHtml = document.getElementById("copyHtml");
   const clear = document.getElementById("clear");
   const themeToggle = document.getElementById("themeToggle");
+  const printPdf = document.getElementById("printPdf");
 
   const tocList = document.getElementById("tocList");
 
@@ -558,10 +827,19 @@
     const html = marked.parse(md.value || "");
     preview.innerHTML = DOMPurify.sanitize(html);
 
+    // Set document title for PDF filename
+    const firstH1 = preview.querySelector('h1');
+    if (firstH1) {
+      document.title = firstH1.textContent.trim() || 'MD Viewer';
+    } else {
+      document.title = 'MD Viewer';
+    }
+
     const hasText = md.value.trim().length > 0;
     copyMd.disabled = !hasText;
     copyHtml.disabled = !hasText;
     clear.disabled = !hasText;
+    printPdf.disabled = !hasText;
 
     buildTOC();
   }
@@ -594,6 +872,12 @@
 
   md.addEventListener("input", render);
 
+  printPdf.addEventListener("click", () => {
+    if (!md.value.trim()) return;
+    window.print();
+    notify("Print dialog opened 🖨️");
+  });
+
   copyMd.addEventListener("click", () => copyText(md.value || "", "Markdown"));
   copyHtml.addEventListener("click", () => copyText(preview.innerHTML || "", "HTML"));
 
@@ -606,6 +890,9 @@
   });
 
   render();
+  
+  // Load Markdown files on page load
+  loadMarkdownFiles();
 </script>
 </body>
 </html>
