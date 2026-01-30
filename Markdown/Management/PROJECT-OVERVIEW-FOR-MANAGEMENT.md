@@ -383,19 +383,3 @@ The system will feature:
 
 ---
 
-## ✅ Approval & Sign-Off
-
-**Prepared By:** Development Team  
-**Date:** January 28, 2026  
-**Status:** Awaiting Approval
-
-**Approvals:**
-- [ ] Project Sponsor
-- [ ] IT Director
-- [ ] Finance Director
-- [ ] Department Heads
-
----
-
-**Questions or Concerns?**  
-Contact: [Project Manager Name] | [Email] | [Phone]

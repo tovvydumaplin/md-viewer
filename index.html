@@ -1,9 +1,16 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MD Viewer</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Marked + DOMPurify -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
 
   <style>
     :root{
@@ -28,231 +35,70 @@
       --scroll-thumb: rgba(0,0,0,.28);
     }
 
-    /* =====================
-       Page shell: no body scroll
-       ===================== */
     html, body { height: 100%; }
     body{
       margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      background:var(--bg);
-      color:var(--text);
-      overflow:hidden;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    .app{
-      height: 100vh;
-      display:flex;
-      flex-direction:column;
-    }
-
-    header{
-      padding:12px 14px;
-      border-bottom:1px solid var(--border);
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-shrink: 0;
-      background:var(--bg);
-      transition: background-color 0.3s ease, border-color 0.3s ease;
-    }
-    header b{font-size:14px}
-    header .sub{font-size:12px;opacity:.8}
-    header .spacer{flex:1}
-
-    button{
-      background: rgba(255,255,255,.06);
-      color:var(--text);
-      border:1px solid var(--border);
-      padding:7px 10px;
-      border-radius:10px;
-      font-size:12px;
-      cursor:pointer;
-      transition: background .15s ease, transform .05s ease, opacity .15s ease;
-    }
-    [data-theme="light"] button{
-      background: rgba(0,0,0,.04);
-    }
-    button:hover{ 
-      background: rgba(255,255,255,.10);
-    }
-    [data-theme="light"] button:hover{
-      background: rgba(0,0,0,.08);
-    }
-    button:active{transform:translateY(1px)}
-    button:disabled{opacity:.5;cursor:not-allowed}
-
-    #themeToggle{
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-
-    /* Content area fills remaining space */
-    .content{
-      flex:1;
-      min-height:0;
-      overflow:hidden;
-    }
-
-    /* Main columns */
-    .wrap{
-      height:100%;
-      display:grid;
-      grid-template-columns: 280px 1fr;
-      gap:12px;
-      padding:12px;
-      box-sizing:border-box;
-    }
-
-    /* === Editor column === */
-    .editorCol{
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
-
-    textarea{
-      width:100%;
-      flex: 1;
-      min-height: 0;
-      resize:none;
-      box-sizing:border-box;
-
-      background:var(--sidebar);
-      color:var(--text);
-      border:1px solid var(--border);
-      border-radius:0;
-
-      padding:12px;
-      font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-      outline:none;
-
-      overflow:auto;
-      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-    }
-    textarea::placeholder{
-      color:rgba(229,231,235,.4);
-    }
-    [data-theme="light"] textarea::placeholder{
-      color:rgba(30,41,59,.4);
-    }
-
-    /* === Preview column === */
-    .previewShell{
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      min-height:0;
-    }
-
-    /* === Sections / TOC === */
-    .toc{
-      background: rgba(2,6,23,.55);
-      border:1px solid var(--border);
-      border-radius:0;
-      padding:10px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-shrink: 0;
-      transition: background-color 0.3s ease, border-color 0.3s ease;
-    }
-    [data-theme="light"] .toc{
-      background: rgba(241,245,249,.95);
-    }
-    .tocLeft{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width:0;
-    }
-    .tocTitle{ font-size:12px; opacity:.85; }
-    .tocHint{ font-size:11px; opacity:.65; }
-    .tocList{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      justify-content:flex-end;
-    }
-    .tocBtn{
-      background: rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.10);
+      background: var(--bg);
       color: var(--text);
-      padding:7px 10px;
-      border-radius:999px;
-      font-size:12px;
-      cursor:pointer;
-      white-space:nowrap;
-      transition: background .15s ease, transform .05s ease;
-    }
-    [data-theme="light"] .tocBtn{
-      background: rgba(0,0,0,.04);
-      border:1px solid rgba(0,0,0,.10);
-    }
-    .tocBtn:hover{ 
-      background: rgba(255,255,255,.10);
-    }
-    [data-theme="light"] .tocBtn:hover{
-      background: rgba(0,0,0,.08);
-    }
-    .tocBtn:active{ transform: translateY(1px); }
-
-    /* === Preview (scrollable) === */
-    .preview{
-      background:var(--panel);
-      border:1px solid var(--border);
-      border-radius:0;
-      padding:26px;
-
-      overflow-y:auto;
-      overflow-x:hidden;
-      flex:1;
-      min-height:0;
-      transition: background-color 0.3s ease, border-color 0.3s ease;
+      overflow:hidden;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
     }
 
-    .preview h1{font-size:26px;margin:14px 0 8px}
-    .preview h2{font-size:20px;margin:14px 0 8px}
-    .preview h3{font-size:15px;margin:12px 0 6px}
-    .preview p{
+    /* Markdown typography (same as your original) */
+    #preview h1{font-size:26px;font-weight:700;margin:14px 0 8px}
+    #preview h2{font-size:20px;font-weight:700;margin:14px 0 8px}
+    #preview h3{font-size:15px;font-weight:600;margin:12px 0 6px}
+    #preview h4{font-size:14px;font-weight:600;margin:12px 0 6px}
+    #preview h5{font-size:13px;font-weight:600;margin:12px 0 6px}
+    #preview h6{font-size:12px;font-weight:600;margin:12px 0 6px}
+    #preview p{
       font-size:14px;
       line-height:1.7;
-      color:#d1d5db;
       margin:10px 0;
+      color:#d1d5db;
     }
-    [data-theme="light"] .preview p{
-      color:#475569;
+    [data-theme="light"] #preview p{ color:#475569; }
+    
+    #preview ul, #preview ol{
+      font-size:14px;
+      line-height:1.7;
+      margin:10px 0;
+      padding-left:24px;
+      color:#d1d5db;
     }
-    .preview a{color:#93c5fd}
-    [data-theme="light"] .preview a{color:#3b82f6}
-    .preview code{
+    [data-theme="light"] #preview ul,
+    [data-theme="light"] #preview ol{ color:#475569; }
+    
+    #preview ul{ list-style-type: disc; }
+    #preview ol{ list-style-type: decimal; }
+    
+    #preview li{
+      margin:4px 0;
+      color:#d1d5db;
+    }
+    [data-theme="light"] #preview li{ color:#475569; }
+    
+    #preview a{ color:#93c5fd; }
+    [data-theme="light"] #preview a{ color:#3b82f6; }
+
+    #preview code{
       background:rgba(255,255,255,.08);
       padding:2px 6px;
       border-radius:8px;
     }
-    [data-theme="light"] .preview code{
-      background:rgba(0,0,0,.06);
-    }
-    .preview pre{
+    [data-theme="light"] #preview code{ background:rgba(0,0,0,.06); }
+
+    #preview pre{
       background:rgba(0,0,0,.25);
       padding:14px;
       border-radius:14px;
       border:1px solid var(--border);
       overflow:auto;
     }
-    [data-theme="light"] .preview pre{
-      background:rgba(0,0,0,.04);
-    }
-    .preview pre code{background:transparent;padding:0}
-    .preview blockquote{
+    [data-theme="light"] #preview pre{ background:rgba(0,0,0,.04); }
+    #preview pre code{ background:transparent;padding:0; }
+
+    #preview blockquote{
       border-left:4px solid rgba(255,255,255,.14);
       padding:6px 12px;
       margin:10px 0;
@@ -260,13 +106,12 @@
       background:rgba(255,255,255,.03);
       border-radius:10px;
     }
-    [data-theme="light"] .preview blockquote{
+    [data-theme="light"] #preview blockquote{
       border-left:4px solid rgba(0,0,0,.14);
       color:#64748b;
       background:rgba(0,0,0,.02);
     }
 
-    /* Highlight when jumping to a section */
     .highlightJump{
       outline: 2px solid rgba(147,197,253,.45);
       outline-offset: 4px;
@@ -277,623 +122,596 @@
       outline: 2px solid rgba(59,130,246,.45);
     }
 
-    /* =========================
-       Scrollbars
-       ========================= */
-
-    /* MD Cards List */
-    #mdCardsContainer {
-      height: 100%;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 8px;
-      box-sizing: border-box;
-      
-    }
-
-
-    #mdCardsContainer::-webkit-scrollbar {
-      width: 10px;
-      background: transparent;
-    }
-
-    #mdCardsContainer::-webkit-scrollbar-track {
-      background: var(--scroll-track);
-      border-radius: 999px;
-      margin: 4px 0;
-    }
-
-    #mdCardsContainer::-webkit-scrollbar-thumb {
-      background: var(--scroll-thumb);
-      border-radius: 999px;
-      border: 2px solid transparent;
-      background-clip: padding-box;
-    }
-
-    #mdCardsContainer::-webkit-scrollbar-thumb:hover {
-      background: rgba(255,255,255,.40);
-      background-clip: padding-box;
-    }
-
-    [data-theme="light"] #mdCardsContainer::-webkit-scrollbar-thumb:hover {
-      background: rgba(0,0,0,.40);
-      background-clip: padding-box;
-    }
-
-    #mdCardsContainer::-webkit-scrollbar-button {
-      display: none !important;
-      height: 0 !important;
-      width: 0 !important;
-    }
-
-    #mdCardsContainer::-webkit-scrollbar-button:start:decrement,
-    #mdCardsContainer::-webkit-scrollbar-button:end:increment {
-      display: none !important;
-      height: 0 !important;
-      width: 0 !important;
-    }
-
-    #mdCardsContainer::-webkit-scrollbar-corner {
-      background: transparent;
-    }
-
-    .md-card {
-      background: var(--panel);
-      border: none;
-      border-radius: 0;
-      padding: 12px 14px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: all .2s ease;
-    }
-
-    .md-card:hover {
-      background: rgba(147,197,253,.08);
-      transform: translateX(4px);
-      box-shadow: 0 2px 8px rgba(0,0,0,.15);
-    }
-
-    [data-theme="light"] .md-card:hover {
-      background: rgba(59,130,246,.08);
-    }
-
-    .md-card-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .md-card-preview {
-      font-size: 11px;
-      opacity: .65;
-      line-height: 1.4;
-    }
-
-    /* Firefox */
-    textarea, .preview, .preview pre, #mdCardsContainer {
+    /* Scrollbars */
+    textarea, #preview, #preview pre, #mdCardsContainer {
       scrollbar-width: thin;
       scrollbar-color: var(--scroll-thumb) var(--scroll-track);
     }
-
-    /* Chromium / Edge / Safari */
     textarea::-webkit-scrollbar,
-    .preview::-webkit-scrollbar,
-    .preview pre::-webkit-scrollbar,
-    #mdCardsContainer::-webkit-scrollbar {
+    #preview::-webkit-scrollbar,
+    #preview pre::-webkit-scrollbar,
+    #mdCardsContainer::-webkit-scrollbar{
       width: 10px;
       height: 10px;
       background: transparent;
     }
     textarea::-webkit-scrollbar-track,
-    .preview::-webkit-scrollbar-track,
-    .preview pre::-webkit-scrollbar-track,
-    #mdCardsContainer::-webkit-scrollbar-track {
+    #preview::-webkit-scrollbar-track,
+    #preview pre::-webkit-scrollbar-track,
+    #mdCardsContainer::-webkit-scrollbar-track{
       background: var(--scroll-track);
       border-radius: 999px;
       margin: 4px 0;
     }
     textarea::-webkit-scrollbar-thumb,
-    .preview::-webkit-scrollbar-thumb,
-    .preview pre::-webkit-scrollbar-thumb,
-    #mdCardsContainer::-webkit-scrollbar-thumb {
+    #preview::-webkit-scrollbar-thumb,
+    #preview pre::-webkit-scrollbar-thumb,
+    #mdCardsContainer::-webkit-scrollbar-thumb{
       background: var(--scroll-thumb);
       border-radius: 999px;
       border: 2px solid transparent;
       background-clip: padding-box;
     }
     textarea::-webkit-scrollbar-thumb:hover,
-    .preview::-webkit-scrollbar-thumb:hover,
-    .preview pre::-webkit-scrollbar-thumb:hover,
-    #mdCardsContainer::-webkit-scrollbar-thumb:hover {
+    #preview::-webkit-scrollbar-thumb:hover,
+    #preview pre::-webkit-scrollbar-thumb:hover,
+    #mdCardsContainer::-webkit-scrollbar-thumb:hover{
       background: rgba(255,255,255,.40);
       background-clip: padding-box;
     }
     [data-theme="light"] textarea::-webkit-scrollbar-thumb:hover,
-    [data-theme="light"] .preview::-webkit-scrollbar-thumb:hover,
-    [data-theme="light"] .preview pre::-webkit-scrollbar-thumb:hover,
-    [data-theme="light"] #mdCardsContainer::-webkit-scrollbar-thumb:hover {
+    [data-theme="light"] #preview::-webkit-scrollbar-thumb:hover,
+    [data-theme="light"] #preview pre::-webkit-scrollbar-thumb:hover,
+    [data-theme="light"] #mdCardsContainer::-webkit-scrollbar-thumb:hover{
       background: rgba(0,0,0,.40);
       background-clip: padding-box;
     }
-    
-    /* Ensure corner is rounded */
-    textarea::-webkit-scrollbar-corner,
-    .preview::-webkit-scrollbar-corner,
-    .preview pre::-webkit-scrollbar-corner,
-    #mdCardsContainer::-webkit-scrollbar-corner {
-      background: transparent;
-    }
 
-    /* Remove scrollbar arrows/buttons */
-    textarea::-webkit-scrollbar-button,
-    .preview::-webkit-scrollbar-button,
-    .preview pre::-webkit-scrollbar-button,
-    #mdCardsContainer::-webkit-scrollbar-button {
-      display: none;
-      height: 0;
-      width: 0;
-    }
-
-    /* === Toast === */
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:64px;
-      transform:translateX(-50%) translateY(20px);
-      opacity:0;
-      background: rgba(2,6,23,.92);
-      color: #e5e7eb;
-      border:1px solid var(--border);
-      padding:10px 14px;
-      border-radius:999px;
-      font-size:13px;
-      transition:.18s ease;
-      pointer-events:none;
-      max-width: calc(100vw - 24px);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      z-index: 60;
-    }
-    [data-theme="light"] .toast{
-      background: rgba(241,245,249,.98);
-      color: #1e293b;
-    }
-    .toast.show{
+    /* Toast */
+    #toast.show{
       opacity:1;
       transform:translateX(-50%) translateY(0);
     }
 
-    /* === Footer === */
-    footer{
-      height:46px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      border-top:1px solid var(--border);
-      color: rgba(229,231,235,.75);
-      font-size:12px;
-      flex-shrink: 0;
-      background: var(--bg);
-      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-    }
-    [data-theme="light"] footer{
-      color: rgba(30,41,59,.75);
-    }
-
-    /* === Mobile === */
-    @media(max-width:900px){
-      .wrap{ 
-        grid-template-columns:1fr;
-        grid-template-rows: 35vh 1fr;
-      }
-      .toc{ 
-        flex-direction:column; 
-        align-items:flex-start;
-      }
-      .tocList{ justify-content:flex-start; }
-    }
-
-
-    /* === Print Styles === */
+    /* ✅ Print fix: print ONLY preview; force white page; remove overflow/grid constraints */
     @media print {
-      header, footer, .editorCol, .toc, .toast {
-        display: none !important;
-      }
-      .app, .content, .wrap {
-        display: block;
-        height: auto;
-        padding: 0;
-        overflow: visible;
-      }
-      .previewShell {
-        height: auto;
-        min-height: auto;
-        display: block;
-      }
-      .preview {
-        border: none;
-        padding: 20px;
-        height: auto !important;
-        min-height: auto;
+      html, body{
+        height:auto !important;
         overflow: visible !important;
-        flex: none;
+        background:#fff !important;
+        color:#000 !important;
       }
-      body {
-        background: white;
-        color: black;
+
+      header, footer, .editorCol, #toc, #toast{
+        display:none !important;
       }
-      .preview h1, .preview h2, .preview h3 {
-        page-break-after: avoid;
+
+      .app, .content, .wrap{
+        display:block !important;
+        height:auto !important;
+        overflow: visible !important;
+        padding:0 !important;
       }
-      .preview pre, .preview blockquote {
-        page-break-inside: avoid;
+
+      #preview{
+        border:none !important;
+        background:#fff !important;
+        color:#000 !important;
+        padding:20px !important;
+        height:auto !important;
+        min-height:auto !important;
+        overflow: visible !important;
+      }
+
+      #preview p{ color:#000 !important; }
+      #preview a{ color:#000 !important; text-decoration: underline !important; }
+      #preview pre{ background:#f5f5f5 !important; border:1px solid #ddd !important; }
+      #preview blockquote{ background:#f7f7f7 !important; color:#000 !important; border-left-color:#999 !important; }
+      
+      /* Prevent tables, code blocks, and blockquotes from breaking across pages */
+      #preview table,
+      #preview pre,
+      #preview blockquote,
+      #preview ul,
+      #preview ol {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      
+      /* Keep headings with their following content */
+      #preview h1,
+      #preview h2,
+      #preview h3,
+      #preview h4,
+      #preview h5,
+      #preview h6 {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      
+      /* Improve text flow */
+      #preview p,
+      #preview li {
+        orphans: 3;
+        widows: 3;
       }
     }
-
-  
   </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
 </head>
 
-<body>
-<div class="app">
-  <header>
-    <div>
-      <b>Markdown Viewer</b>
-      <div class="sub">Preview scrolls · header/footer stay</div>
-    </div>
-    <div class="spacer"></div>
-    <button id="themeToggle" type="button" title="Toggle theme">🌙</button>
-    <button id="printPdf" type="button">Print to PDF</button>
-    <button id="copyPlainText" type="button">Copy Plain Text</button>
-    <button id="copyHtml" type="button">Copy HTML</button>
-    <button id="copyMd" type="button">Copy MD</button>
-    <button id="clear" type="button">Clear</button>
-  </header>
-
-  <div class="content">
-    <div class="wrap">
-      <div class="editorCol" style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
-        <!-- Top 70%: Markdown Files List -->
-        <div style="flex: 7 1 0; min-height: 0; background: var(--sidebar); border: 1px solid var(--border); border-radius: 0; overflow: hidden;">
-          <div id="mdCardsContainer"></div>
+<body class="h-full">
+  <div class="app h-screen flex flex-col">
+    <!-- Header -->
+    <header class="shrink-0 border-b" style="border-color: var(--border); background: var(--bg);">
+      <div class="px-3 py-3 flex items-center gap-2">
+        <div class="min-w-0">
+          <div class="text-sm font-semibold">Markdown Viewer</div>
+          <div class="text-xs opacity-80">Preview scrolls · header/footer stay</div>
         </div>
-        
-        <!-- Bottom 30%: Paste Area -->
-        <div style="flex: 3 1 0; min-height: 0; display: flex; flex-direction: column;">
-          <textarea id="md" placeholder="Paste markdown here..." style="height: 100%; resize: none;"># 👋 Welcome
 
-          Welcome to this project!  
-          This repository contains the core codebase for the system and serves as the foundation for ongoing development, improvements, and future features.
+        <div class="flex-1"></div>
 
-          Whether you’re here to explore, contribute, or maintain the project — you’re in the right place.
-</textarea>   
-        </div>
+        <button id="themeToggle" type="button" title="Toggle theme"
+          class="w-9 h-9 rounded-full border text-xs flex items-center justify-center active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >🌙</button>
+
+        <button id="hamburgerMenu" type="button" title="Menu"
+          class="w-9 h-9 rounded-full border text-lg flex items-center justify-center active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >☰</button>
+
+        <button id="printPdf" type="button" class="hidden"
+          class="rounded-lg border px-3 py-2 text-xs active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Print to PDF</button>
+
+        <button id="copyPlainText" type="button" class="hidden"
+          class="rounded-lg border px-3 py-2 text-xs active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Copy Plain Text</button>
+
+        <button id="copyHtml" type="button" class="hidden"
+          class="rounded-lg border px-3 py-2 text-xs active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Copy HTML</button>
+
+        <button id="copyMd" type="button" class="hidden"
+          class="rounded-lg border px-3 py-2 text-xs active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Copy MD</button>
+
+        <button id="clear" type="button" class="hidden"
+          class="rounded-lg border px-3 py-2 text-xs active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Clear</button>
       </div>
+    </header>
 
-      <div class="previewShell">
-        <div class="toc" id="toc">
-          <div class="tocLeft">
-            <div class="tocTitle">Sections</div>
-            <div class="tocHint">Click a pill to jump</div>
+    <!-- Mobile Overlay -->
+    <div id="mobileOverlay" class="hidden fixed inset-0 bg-black/50 z-40"></div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileNav" class="fixed top-0 right-0 bottom-0 w-72 z-50 p-6 transform translate-x-full transition-transform duration-300 border-l overflow-y-auto"
+         style="background: var(--panel); border-color: var(--border);">
+      <button id="closeMenu" type="button" class="absolute top-4 right-4 text-2xl" style="color: var(--text);">×</button>
+      <div class="mt-12 flex flex-col gap-3">
+        <button id="printPdfMobile" type="button"
+          class="rounded-lg border px-3 py-2 text-xs w-full active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Print to PDF</button>
+        <button id="copyPlainTextMobile" type="button"
+          class="rounded-lg border px-3 py-2 text-xs w-full active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Copy Plain Text</button>
+        <button id="copyHtmlMobile" type="button"
+          class="rounded-lg border px-3 py-2 text-xs w-full active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Copy HTML</button>
+        <button id="copyMdMobile" type="button"
+          class="rounded-lg border px-3 py-2 text-xs w-full active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Copy MD</button>
+        <button id="clearMobile" type="button"
+          class="rounded-lg border px-3 py-2 text-xs w-full active:translate-y-px transition"
+          style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
+        >Clear</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content flex-1 min-h-0 overflow-hidden">
+      <!-- ✅ Responsive: stack on mobile, 2 columns on md+ -->
+      <div class="wrap h-full grid gap-3 p-3 box-border grid-cols-1 md:grid-cols-[280px_1fr] md:gap-3">
+        <!-- Left column -->
+        <div class="editorCol h-full flex flex-col gap-3 min-h-0">
+          <!-- Cards (desktop: 70% height) (mobile: fixed-ish height) -->
+          <div class="min-h-0 overflow-hidden border"
+               style="border-color: var(--border); background: var(--sidebar);">
+            <div id="mdCardsContainer" class="h-[38vh] md:h-full md:flex-[7_1_0] overflow-y-auto overflow-x-hidden p-2 box-border"></div>
           </div>
-          <div class="tocList" id="tocList"></div>
+
+          <!-- Textarea -->
+          <div class="min-h-0 flex flex-col md:flex-[3_1_0]">
+            <textarea id="md" placeholder="Paste markdown here..."
+              class="w-full min-h-0 resize-none border p-3 outline-none text-xs leading-relaxed h-[28vh] md:h-full"
+              style="border-color: var(--border); background: var(--sidebar); color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"
+            ># 👋 Welcome
+
+Welcome to this project!  
+This repository contains the core codebase for the system and serves as the foundation for ongoing development, improvements, and future features.
+
+Whether you’re here to explore, contribute, or maintain the project — you’re in the right place.
+            </textarea>
+          </div>
         </div>
 
-        <div id="preview" class="preview"></div>
+        <!-- Right column -->
+        <div class="h-full flex flex-col gap-3 min-h-0">
+          <!-- TOC -->
+          <div id="toc"
+               class="shrink-0 border p-3 flex items-center gap-3"
+               style="border-color: var(--border); background: rgba(2,6,23,.55);">
+            <div class="min-w-0 shrink-0">
+              <div class="text-xs opacity-85">Sections</div>
+              <div class="text-[11px] opacity-65">Click a pill to jump</div>
+            </div>
+            <div id="tocList" class="flex gap-2 flex-wrap max-[900px]:flex-nowrap max-[900px]:overflow-x-auto max-[900px]:overflow-y-hidden" style="scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) var(--scroll-track);"></div>
+          </div>
+
+          <!-- Preview -->
+          <div id="preview"
+               class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden border p-6"
+               style="border-color: var(--border); background: var(--panel);"></div>
+        </div>
       </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="shrink-0 h-12 flex items-center justify-center gap-2 border-t text-xs"
+            style="border-color: var(--border); background: var(--bg); color: rgba(229,231,235,.75);">
+      <span>©</span>
+      <span id="year"></span>
+      <span>Tovvy B. Dumaplin. All rights reserved.</span>
+    </footer>
   </div>
 
-  <footer>
-    <span>©</span>
-    <span id="year"></span>
-    <span>Tovvy B. Dumaplin. All rights reserved.</span>
-    
-  </footer>
-</div>
+  <!-- Toast -->
+  <div id="toast"
+       class="fixed left-1/2 bottom-16 -translate-x-1/2 translate-y-5 opacity-0 pointer-events-none z-[60]
+              border px-4 py-2 rounded-full text-sm max-w-[calc(100vw-24px)] whitespace-nowrap overflow-hidden text-ellipsis transition-all duration-150"
+       style="border-color: var(--border); background: rgba(2,6,23,.92); color: #e5e7eb;"
+       role="status" aria-live="polite"></div>
 
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script>
+    marked.setOptions({ gfm:true, breaks:true });
 
-<script>
-  marked.setOptions({ gfm:true, breaks:true });
+    const md = document.getElementById("md");
+    const preview = document.getElementById("preview");
+    const toast = document.getElementById("toast");
+    const mdCardsContainer = document.getElementById("mdCardsContainer");
 
-  const md = document.getElementById("md");
-  const preview = document.getElementById("preview");
-  const toast = document.getElementById("toast");
-  const mdCardsContainer = document.getElementById("mdCardsContainer");
+    let mdFiles = [];
 
-  // List of Markdown files
-  let mdFiles = [];
-
-  // Fetch and display Markdown files
-  async function loadMarkdownFiles() {
-    mdFiles = [];
-    let filePaths = [];
-
-    // Try to fetch from JSON manifest first
-    try {
-      const res = await fetch('Markdown/files.json');
-      if (res.ok) {
-        const data = await res.json();
-        filePaths = data.files.map(f => f.path);
-      }
-    } catch (e) {
-      console.log('No files.json found, using fallback');
-      // Fallback: static list
-      filePaths = [
-        'Markdown/Developer/CODING-STANDARDS.md',
-        'Markdown/Developer/TECH-STACK-PLAN.md',
-        'Markdown/Management/PROGRESS-REPORT-2026-01-30.md',
-        'Markdown/Management/PROJECT-OVERVIEW-FOR-MANAGEMENT.md',
-        'Markdown/Management/Server-hosting.md'
-      ];
-    }
-
-    // Process all files
-    for (const path of filePaths) {
-      const parts = path.split('/');
-      const filename = parts[parts.length - 1];
-      const folder = parts[parts.length - 2];
-      
-      const file = {
-        name: filename,
-        path: path,
-        folder: folder
-      };
+    async function loadMarkdownFiles() {
+      mdFiles = [];
+      let filePaths = [];
 
       try {
-        const res = await fetch(file.path);
-        const text = await res.text();
-        const lines = text.split(/\r?\n/);
-        file.title = lines.find(l => l.trim().startsWith('#'))?.replace(/^#+\s*/, '') || file.name;
-        
-        // Get preview lines (project and date)
-        const contentLines = lines.filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('---'));
-        let previewParts = [];
-        
-        for (const line of contentLines.slice(0, 3)) {
-          // Remove markdown formatting
-          let cleaned = line
-            .replace(/\*\*([^*]+)\*\*/g, '$1')  // **bold**
-            .replace(/\*([^*]+)\*/g, '$1')      // *italic*
-            .replace(/__([^_]+)__/g, '$1')      // __bold__
-            .replace(/_([^_]+)_/g, '$1')        // _italic_
-            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // [link](url)
-            .replace(/`([^`]+)`/g, '$1')        // `code`
-            .trim();
-          
-          if (cleaned) previewParts.push(cleaned);
-          if (previewParts.length >= 2) break; // Get project and date
+        const res = await fetch('Markdown/files.json');
+        if (res.ok) {
+          const data = await res.json();
+          filePaths = data.files.map(f => f.path);
         }
-        
-        file.preview = previewParts.join(' • ').substring(0, 100);
-      } catch {
-        file.title = file.name;
-        file.preview = '';
+      } catch (e) {
+        filePaths = [
+          'Markdown/Developer/CODING-STANDARDS.md',
+          'Markdown/Developer/TECH-STACK-PLAN.md',
+          'Markdown/Management/PROGRESS-REPORT-2026-01-30.md',
+          'Markdown/Management/PROJECT-OVERVIEW-FOR-MANAGEMENT.md',
+          'Markdown/Management/Server-hosting.md'
+        ];
       }
 
-      mdFiles.push(file);
-    }
+      for (const path of filePaths) {
+        const parts = path.split('/');
+        const filename = parts[parts.length - 1];
+        const folder = parts[parts.length - 2];
 
-    renderMarkdownCards();
-  }
+        const file = { name: filename, path, folder };
 
-  function renderMarkdownCards() {
-    mdCardsContainer.innerHTML = '';
-    
-    // Group files by folder
-    const grouped = {};
-    mdFiles.forEach(file => {
-      if (!grouped[file.folder]) grouped[file.folder] = [];
-      grouped[file.folder].push(file);
-    });
+        try {
+          const res = await fetch(file.path);
+          const text = await res.text();
+          const lines = text.split(/\r?\n/);
+          file.title = lines.find(l => l.trim().startsWith('#'))?.replace(/^#+\s*/, '') || file.name;
 
-    // Render each folder group
-    Object.keys(grouped).sort().forEach(folder => {
-      // Folder header
-      const folderHeader = document.createElement('div');
-      folderHeader.style = 'font-size: 11px; font-weight: 700; text-transform: uppercase; opacity: .6; margin: 12px 8px 8px 8px; letter-spacing: 0.5px;';
-      folderHeader.textContent = folder;
-      mdCardsContainer.appendChild(folderHeader);
+          const contentLines = lines.filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('---'));
+          let previewParts = [];
 
-      // Render files in this folder
-      grouped[folder].forEach((file, idx) => {
-        const globalIdx = mdFiles.indexOf(file);
-        const card = document.createElement('div');
-        card.className = 'md-card';
-        card.innerHTML = `
-          <div class="md-card-title">${file.title}</div>
-          <div class="md-card-preview">${file.preview}</div>
-        `;
-        card.addEventListener('click', () => loadMarkdownFile(globalIdx));
-        mdCardsContainer.appendChild(card);
-      });
-    });
-  }
+          for (const line of contentLines.slice(0, 3)) {
+            let cleaned = line
+              .replace(/\*\*([^*]+)\*\*/g, '$1')
+              .replace(/\*([^*]+)\*/g, '$1')
+              .replace(/__([^_]+)__/g, '$1')
+              .replace(/_([^_]+)_/g, '$1')
+              .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+              .replace(/`([^`]+)`/g, '$1')
+              .trim();
 
-  function loadMarkdownFile(idx) {
-    const file = mdFiles[idx];
-    fetch(file.path)
-      .then(res => res.text())
-      .then(mdText => {
-        md.value = mdText;
-        render();
-        notify(`Loaded: ${file.title}`);
-      })
-      .catch(() => {
-        notify('Failed to load file');
-      });
-  }
+            if (cleaned) previewParts.push(cleaned);
+            if (previewParts.length >= 2) break;
+          }
 
-  const copyMd = document.getElementById("copyMd");
-  const copyHtml = document.getElementById("copyHtml");
-  const copyPlainText = document.getElementById("copyPlainText");
-  const clear = document.getElementById("clear");
-  const themeToggle = document.getElementById("themeToggle");
-  const printPdf = document.getElementById("printPdf");
+          file.preview = previewParts.join(' • ').substring(0, 100);
+        } catch {
+          file.title = file.name;
+          file.preview = '';
+        }
 
-  const tocList = document.getElementById("tocList");
-
-  document.getElementById("year").textContent = new Date().getFullYear();
-
-  let timer;
-
-  // Theme management
-  const savedTheme = localStorage.getItem("mdViewerTheme") || "dark";
-  document.documentElement.setAttribute("data-theme", savedTheme);
-  themeToggle.textContent = savedTheme === "dark" ? "🌙" : "☀️";
-
-  themeToggle.addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme");
-    const newTheme = current === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", newTheme);
-    themeToggle.textContent = newTheme === "dark" ? "🌙" : "☀️";
-    localStorage.setItem("mdViewerTheme", newTheme);
-    notify(`${newTheme === "dark" ? "Dark" : "Light"} mode enabled`);
-  });
-
-  function notify(msg){
-    toast.textContent = msg;
-    toast.classList.remove("show");
-    void toast.offsetWidth;
-    toast.classList.add("show");
-    clearTimeout(timer);
-    timer = setTimeout(()=>toast.classList.remove("show"),1600);
-  }
-
-  function slugify(text){
-    return (text || "")
-      .toLowerCase()
-      .trim()
-      .replace(/[\s]+/g, "-")
-      .replace(/[^\w\-]+/g, "");
-  }
-
-  function scrollPreviewToHeading(h){
-    // Use scrollIntoView for accurate positioning
-    h.scrollIntoView({ 
-      behavior: "smooth",
-      block: "start"
-    });
-
-    h.classList.add("highlightJump");
-    setTimeout(() => h.classList.remove("highlightJump"), 900);
-  }
-
-  function buildTOC(){
-    tocList.innerHTML = "";
-    const headings = preview.querySelectorAll("h2");
-
-    if (!headings.length){
-      const empty = document.createElement("span");
-      empty.style.opacity = ".65";
-      empty.style.fontSize = "12px";
-      empty.textContent = "No sections found (add ## headings).";
-      tocList.appendChild(empty);
-      return;
-    }
-
-    headings.forEach((h, idx) => {
-      if (!h.id){
-        const base = slugify(h.textContent) || `section-${idx+1}`;
-        let id = base, n = 2;
-        while (preview.querySelector(`#${CSS.escape(id)}`)) id = `${base}-${n++}`;
-        h.id = id;
+        mdFiles.push(file);
       }
 
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "tocBtn";
-      btn.textContent = h.textContent.trim() || `Section ${idx+1}`;
-      btn.addEventListener("click", () => scrollPreviewToHeading(h));
-
-      tocList.appendChild(btn);
-    });
-  }
-
-  function render(){
-    const html = marked.parse(md.value || "");
-    preview.innerHTML = DOMPurify.sanitize(html);
-
-    // Set document title for PDF filename
-    const firstH1 = preview.querySelector('h1');
-    if (firstH1) {
-      document.title = firstH1.textContent.trim() || 'MD Viewer';
-    } else {
-      document.title = 'MD Viewer';
+      renderMarkdownCards();
     }
 
-    const hasText = md.value.trim().length > 0;
-    copyMd.disabled = !hasText;
-    copyHtml.disabled = !hasText;
-    copyPlainText.disabled = !hasText;
-    clear.disabled = !hasText;
-    printPdf.disabled = !hasText;
+    function renderMarkdownCards() {
+      mdCardsContainer.innerHTML = '';
 
-    buildTOC();
-  }
+      const grouped = {};
+      mdFiles.forEach(file => {
+        if (!grouped[file.folder]) grouped[file.folder] = [];
+        grouped[file.folder].push(file);
+      });
 
-  async function copyText(text, label){
-    const value = (text || "").trim();
-    if (!value) return notify("Nothing to copy.");
+      Object.keys(grouped).sort().forEach(folder => {
+        const folderHeader = document.createElement('div');
+        folderHeader.className = "text-[11px] font-bold uppercase opacity-60 mx-2 mt-3 mb-2 tracking-wide";
+        folderHeader.textContent = folder;
+        mdCardsContainer.appendChild(folderHeader);
 
-    try{
-      await navigator.clipboard.writeText(text);
-      notify(`${label} copied ✅`);
-    }catch(e){
-      // fallback
+        grouped[folder].forEach((file) => {
+          const globalIdx = mdFiles.indexOf(file);
+
+          const card = document.createElement('div');
+          card.className =
+            "cursor-pointer select-none border-b last:border-b-0 px-4 py-3 transition-all duration-200";
+          card.style.borderColor = "var(--border)";
+
+          card.addEventListener('mouseenter', () => {
+            card.style.background = "rgba(147,197,253,.08)";
+            card.style.transform = "translateX(4px)";
+          });
+          card.addEventListener('mouseleave', () => {
+            card.style.background = "transparent";
+            card.style.transform = "translateX(0)";
+          });
+
+          card.innerHTML = `
+            <div class="text-[13px] font-semibold mb-1">${file.title}</div>
+            <div class="text-[11px] opacity-65 leading-snug">${file.preview}</div>
+          `;
+          card.addEventListener('click', () => loadMarkdownFile(globalIdx));
+          mdCardsContainer.appendChild(card);
+        });
+      });
+    }
+
+    function loadMarkdownFile(idx) {
+      const file = mdFiles[idx];
+      fetch(file.path)
+        .then(res => res.text())
+        .then(mdText => {
+          md.value = mdText;
+          render();
+          notify(`Loaded: ${file.title}`);
+        })
+        .catch(() => notify('Failed to load file'));
+    }
+
+    const copyMd = document.getElementById("copyMd");
+    const copyHtml = document.getElementById("copyHtml");
+    const copyPlainText = document.getElementById("copyPlainText");
+    const clear = document.getElementById("clear");
+    const themeToggle = document.getElementById("themeToggle");
+    const printPdf = document.getElementById("printPdf");
+    const tocList = document.getElementById("tocList");
+
+    // Hamburger menu elements
+    const hamburgerMenu = document.getElementById("hamburgerMenu");
+    const mobileNav = document.getElementById("mobileNav");
+    const mobileOverlay = document.getElementById("mobileOverlay");
+    const closeMenu = document.getElementById("closeMenu");
+    const printPdfMobile = document.getElementById("printPdfMobile");
+    const copyPlainTextMobile = document.getElementById("copyPlainTextMobile");
+    const copyHtmlMobile = document.getElementById("copyHtmlMobile");
+    const copyMdMobile = document.getElementById("copyMdMobile");
+    const clearMobile = document.getElementById("clearMobile");
+
+    // Menu toggle functions
+    function openMenu() {
+      mobileNav.classList.remove('translate-x-full');
+      mobileOverlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenuFn() {
+      mobileNav.classList.add('translate-x-full');
+      mobileOverlay.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    hamburgerMenu.addEventListener('click', openMenu);
+    closeMenu.addEventListener('click', closeMenuFn);
+    mobileOverlay.addEventListener('click', closeMenuFn);
+
+    // Mobile button handlers
+    printPdfMobile.addEventListener('click', () => { closeMenuFn(); printPdf.click(); });
+    copyPlainTextMobile.addEventListener('click', () => { closeMenuFn(); copyPlainText.click(); });
+    copyHtmlMobile.addEventListener('click', () => { closeMenuFn(); copyHtml.click(); });
+    copyMdMobile.addEventListener('click', () => { closeMenuFn(); copyMd.click(); });
+    clearMobile.addEventListener('click', () => { closeMenuFn(); clear.click(); });
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    let timer;
+
+    const savedTheme = localStorage.getItem("mdViewerTheme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    themeToggle.textContent = savedTheme === "dark" ? "🌙" : "☀️";
+
+    function applyThemeSurfaces() {
+      const theme = document.documentElement.getAttribute("data-theme");
+      const toc = document.getElementById("toc");
+      if (theme === "light") {
+        toc.style.background = "rgba(241,245,249,.95)";
+        toast.style.background = "rgba(241,245,249,.98)";
+        toast.style.color = "#1e293b";
+      } else {
+        toc.style.background = "rgba(2,6,23,.55)";
+        toast.style.background = "rgba(2,6,23,.92)";
+        toast.style.color = "#e5e7eb";
+      }
+    }
+    applyThemeSurfaces();
+
+    themeToggle.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      const newTheme = current === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      themeToggle.textContent = newTheme === "dark" ? "🌙" : "☀️";
+      localStorage.setItem("mdViewerTheme", newTheme);
+      applyThemeSurfaces();
+      notify(`${newTheme === "dark" ? "Dark" : "Light"} mode enabled`);
+    });
+
+    function notify(msg){
+      toast.textContent = msg;
+      toast.classList.remove("show");
+      void toast.offsetWidth;
+      toast.classList.add("show");
+      clearTimeout(timer);
+      timer = setTimeout(()=>toast.classList.remove("show"),1600);
+    }
+
+    function slugify(text){
+      return (text || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[\s]+/g, "-")
+        .replace(/[^\w\-]+/g, "");
+    }
+
+    function scrollPreviewToHeading(h){
+      h.scrollIntoView({ behavior:"smooth", block:"start" });
+      h.classList.add("highlightJump");
+      setTimeout(() => h.classList.remove("highlightJump"), 900);
+    }
+
+    function buildTOC(){
+      tocList.innerHTML = "";
+      const headings = preview.querySelectorAll("h2");
+
+      if (!headings.length){
+        const empty = document.createElement("span");
+        empty.className = "text-xs opacity-65";
+        empty.textContent = "No sections found (add ## headings).";
+        tocList.appendChild(empty);
+        return;
+      }
+
+      headings.forEach((h, idx) => {
+        if (!h.id){
+          const base = slugify(h.textContent) || `section-${idx+1}`;
+          let id = base, n = 2;
+          while (preview.querySelector(`#${CSS.escape(id)}`)) id = `${base}-${n++}`;
+          h.id = id;
+        }
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "px-3 py-1.5 rounded-full text-xs border transition active:translate-y-px whitespace-nowrap";
+        btn.style.borderColor = "var(--border)";
+        btn.style.background = "rgba(255,255,255,.06)";
+        btn.style.color = "var(--text)";
+        btn.textContent = h.textContent.trim() || `Section ${idx+1}`;
+        btn.addEventListener("click", () => scrollPreviewToHeading(h));
+
+        tocList.appendChild(btn);
+      });
+    }
+
+    function render(){
+      const html = marked.parse(md.value || "");
+      preview.innerHTML = DOMPurify.sanitize(html);
+
+      const firstH1 = preview.querySelector('h1');
+      document.title = firstH1 ? (firstH1.textContent.trim() || 'MD Viewer') : 'MD Viewer';
+
+      const hasText = md.value.trim().length > 0;
+      copyMd.disabled = !hasText;
+      copyHtml.disabled = !hasText;
+      copyPlainText.disabled = !hasText;
+      clear.disabled = !hasText;
+      printPdf.disabled = !hasText;
+
+      buildTOC();
+    }
+
+    async function copyText(text, label){
+      const value = (text || "").trim();
+      if (!value) return notify("Nothing to copy.");
+
       try{
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.setAttribute("readonly","");
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
+        await navigator.clipboard.writeText(text);
         notify(`${label} copied ✅`);
-      }catch(err){
-        notify("Copy failed (browser blocked it).");
+      }catch(e){
+        try{
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly","");
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          notify(`${label} copied ✅`);
+        }catch(err){
+          notify("Copy failed (browser blocked it).");
+        }
       }
     }
-  }
 
-  md.addEventListener("input", render);
+    md.addEventListener("input", render);
 
-  printPdf.addEventListener("click", () => {
-    if (!md.value.trim()) return;
-    window.print();
-    notify("Print dialog opened 🖨️");
-  });
+    printPdf.addEventListener("click", () => {
+      if (!md.value.trim()) return;
+      window.print();
+      notify("Print dialog opened 🖨️");
+    });
 
-  copyPlainText.addEventListener("click", () => {
-    if (!preview.textContent.trim()) return;
-    // Get plain text from preview (strips all HTML)
-    const plainText = preview.innerText || preview.textContent;
-    copyText(plainText, "Plain text");
-  });
+    copyPlainText.addEventListener("click", () => {
+      if (!preview.textContent.trim()) return;
+      const plainText = preview.innerText || preview.textContent;
+      copyText(plainText, "Plain text");
+    });
 
-  copyMd.addEventListener("click", () => copyText(md.value || "", "Markdown"));
-  copyHtml.addEventListener("click", () => copyText(preview.innerHTML || "", "HTML"));
+    copyMd.addEventListener("click", () => copyText(md.value || "", "Markdown"));
+    copyHtml.addEventListener("click", () => copyText(preview.innerHTML || "", "HTML"));
 
-  clear.addEventListener("click", () => {
-    if (!md.value.trim()) return;
-    md.value = "";
+    clear.addEventListener("click", () => {
+      if (!md.value.trim()) return;
+      md.value = "";
+      render();
+      notify("Cleared ✅");
+      md.focus();
+    });
+
     render();
-    notify("Cleared ✅");
-    md.focus();
-  });
-
-  render();
-  
-  // Load Markdown files on page load
-  loadMarkdownFiles();
-</script>
+    loadMarkdownFiles();
+  </script>
 </body>
 </html>
