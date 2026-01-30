@@ -613,35 +613,26 @@
   // Fetch and display Markdown files
   async function loadMarkdownFiles() {
     mdFiles = [];
-    
-    // Fallback: static list with folder structure
-    const filePaths = [
-      'Markdown/Developer/CODING-STANDARDS.md',
-      'Markdown/Developer/TECH-STACK-PLAN.md',
-      'Markdown/Management/PROGRESS-REPORT-2026-01-30.md',
-      'Markdown/Management/PROJECT-OVERVIEW-FOR-MANAGEMENT.md'
-    ];
+    let filePaths = [];
 
-    // Try to dynamically discover files
+    // Try to fetch from JSON manifest first
     try {
-      const folders = ['Developer', 'Management'];
-      for (const folder of folders) {
-        try {
-          const res = await fetch(`Markdown/${folder}/`);
-          if (res.ok) {
-            const text = await res.text();
-            const matches = [...text.matchAll(/href=["']([^"']+\.md)["']/gi)];
-            matches.forEach(m => {
-              const filename = decodeURIComponent(m[1].split('/').pop());
-              const fullPath = `Markdown/${folder}/${filename}`;
-              if (!filePaths.includes(fullPath)) {
-                filePaths.push(fullPath);
-              }
-            });
-          }
-        } catch {}
+      const res = await fetch('Markdown/files.json');
+      if (res.ok) {
+        const data = await res.json();
+        filePaths = data.files.map(f => f.path);
       }
-    } catch {}
+    } catch (e) {
+      console.log('No files.json found, using fallback');
+      // Fallback: static list
+      filePaths = [
+        'Markdown/Developer/CODING-STANDARDS.md',
+        'Markdown/Developer/TECH-STACK-PLAN.md',
+        'Markdown/Management/PROGRESS-REPORT-2026-01-30.md',
+        'Markdown/Management/PROJECT-OVERVIEW-FOR-MANAGEMENT.md',
+        'Markdown/Management/Server-hosting.md'
+      ];
+    }
 
     // Process all files
     for (const path of filePaths) {
