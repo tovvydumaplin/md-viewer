@@ -14,6 +14,44 @@
 
   <style>
     :root{
+            .icon-btn {
+              padding: 8px;
+              border: 1.5px solid transparent;
+              background: none;
+              border-radius: 8px;
+              color: var(--text);
+              outline: none;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: background 0.18s cubic-bezier(.4,0,.2,1), border 0.18s cubic-bezier(.4,0,.2,1), box-shadow 0.18s cubic-bezier(.4,0,.2,1);
+              box-shadow: 0 1px 4px 0 rgba(0,0,0,0);
+            }
+            .icon-btn:hover {
+              background: var(--panel);
+              border: 1.5px solid var(--border);
+              box-shadow: 0 2px 8px 0 rgba(0,0,0,.10);
+            }
+            [data-theme="light"] .icon-btn:hover {
+              background: var(--sidebar);
+            }
+            #previewActions {
+              transition: opacity 0.18s cubic-bezier(.4,0,.2,1), visibility 0.18s cubic-bezier(.4,0,.2,1);
+              opacity: 0;
+              visibility: hidden;
+            }
+            #previewContainer:hover #previewActions {
+              opacity: 1;
+              visibility: visible;
+            }
+            #previewActions:not(.hidden) {
+              opacity: 1;
+              visibility: visible;
+            }
+            @media print {
+              #previewActions { display: none !important; }
+            }
       --bg:#0b1220;
       --panel:#0f172a;
       --sidebar:#020617;
@@ -372,7 +410,7 @@ Whether you’re here to explore, contribute, or maintain the project — you’
         </div>
 
         <!-- Right column (sticky on mobile) -->
-        <div class="md:h-full flex flex-col gap-3 min-h-0 max-[900px]:sticky max-[900px]:top-0 max-[900px]:z-10">
+        <div class="md:h-full flex flex-col gap-3 min-h-0 flex-1 max-[900px]:sticky max-[900px]:top-0 max-[900px]:z-10">
           <!-- TOC Pills (Desktop only) -->
           <div id="toc"
                class="shrink-0 border p-3 flex items-center gap-3 max-[900px]:hidden"
@@ -385,9 +423,46 @@ Whether you’re here to explore, contribute, or maintain the project — you’
           </div>
 
           <!-- Preview -->
-          <div id="preview"
-               class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden border p-6 max-[900px]:max-h-[70vh]"
-               style="border-color: var(--border); background: var(--panel);"></div>
+          <div id="previewContainer" class="relative flex-1 min-h-0 h-full">
+            <div id="preview"
+                 class="h-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden border p-6 max-[900px]:max-h-[70vh]"
+                 style="border-color: var(--border); background: var(--panel);"></div>
+            <!-- Floating buttons -->
+            <div id="previewActions" class="hidden absolute top-3 right-3 flex gap-2 z-20">
+              <button id="downloadBtn" title="Download as PDF" class="icon-btn">
+                <!-- Download icon: Arrow into tray -->
+                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v10m0 0l-4-4m4 4l4-4" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="18" width="16" height="2" rx="1"/></svg>
+              </button>
+              <button id="maximizeBtn" title="Maximize preview" class="icon-btn">
+                <!-- Maximize: Four corners -->
+                <svg id="maximizeIcon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 8 4 4 8 4"/><polyline points="20 8 20 4 16 4"/><polyline points="4 16 4 20 8 20"/><polyline points="20 16 20 20 16 20"/></svg>
+                <!-- Minimize: Rectangle with inward arrows -->
+                <svg id="minimizeIcon" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><line x1="6" y1="12" x2="18" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+            <style>
+              .icon-btn {
+                padding: 8px;
+                border: 1.5px solid transparent;
+                background: none;
+                border-radius: 8px;
+                color: var(--text);
+                transition: background 0.15s, border 0.15s;
+                outline: none;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .icon-btn:hover {
+                background: var(--panel);
+                border: 1.5px solid var(--border);
+              }
+              [data-theme="light"] .icon-btn:hover {
+                background: var(--sidebar);
+              }
+            </style>
         </div>
       </div>
     </div>
@@ -413,6 +488,76 @@ Whether you’re here to explore, contribute, or maintain the project — you’
 
     const md = document.getElementById("md");
     const preview = document.getElementById("preview");
+    const previewContainer = document.getElementById("previewContainer");
+    const previewActions = document.getElementById("previewActions");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const maximizeBtn = document.getElementById("maximizeBtn");
+    const maximizeIcon = document.getElementById("maximizeIcon");
+    const minimizeIcon = document.getElementById("minimizeIcon");
+        // --- Preview hover actions ---
+        let isMaximized = false;
+        function showPreviewActions() {
+          if (!isMaximized) previewActions.classList.remove("hidden");
+        }
+        function hidePreviewActions() {
+          if (!isMaximized) previewActions.classList.add("hidden");
+        }
+        previewContainer.addEventListener("mouseenter", showPreviewActions);
+        previewContainer.addEventListener("mouseleave", hidePreviewActions);
+
+        // --- Download to PDF ---
+        downloadBtn.addEventListener("click", () => {
+          // Hide actions before print
+          previewActions.style.display = "none";
+          setTimeout(() => {
+            printPdf.click();
+            setTimeout(() => { previewActions.style.display = ""; }, 500);
+          }, 50);
+        });
+
+        // --- Maximize/minimize preview ---
+        maximizeBtn.addEventListener("click", () => {
+          isMaximized = !isMaximized;
+          if (isMaximized) {
+            document.querySelector(".editorCol").style.display = "none";
+            document.querySelector("footer").style.display = "none";
+            document.querySelector("header").style.display = "none";
+            document.querySelector(".content .wrap > .md\\:h-full").style.display = "none";
+            previewContainer.classList.add("z-50");
+            previewContainer.style.position = "fixed";
+            previewContainer.style.inset = "0";
+            previewContainer.style.background = "var(--panel)";
+            previewContainer.style.borderRadius = "0";
+            previewContainer.style.boxShadow = "0 0 0 9999px rgba(0,0,0,.5)";
+            previewActions.classList.remove("hidden");
+            maximizeIcon.style.display = "none";
+            minimizeIcon.style.display = "inline";
+            document.getElementById("toc").style.display = "flex";
+            // Restore scrollability
+            preview.classList.add("min-h-0", "overflow-y-auto", "overflow-x-hidden");
+            preview.style.maxHeight = "100vh";
+            maximizeBtn.title = "Minimize preview";
+          } else {
+            document.querySelector(".editorCol").style.display = "";
+            document.querySelector("footer").style.display = "";
+            document.querySelector("header").style.display = "";
+            document.querySelector(".content .wrap > .md\\:h-full").style.display = "";
+            previewContainer.classList.remove("z-50");
+            previewContainer.style.position = "";
+            previewContainer.style.inset = "";
+            previewContainer.style.background = "";
+            previewContainer.style.borderRadius = "";
+            previewContainer.style.boxShadow = "";
+            previewActions.classList.add("hidden");
+            maximizeIcon.style.display = "inline";
+            minimizeIcon.style.display = "none";
+            document.getElementById("toc").style.display = "";
+            // Restore scrollability to default
+            preview.classList.add("min-h-0", "overflow-y-auto", "overflow-x-hidden");
+            preview.style.maxHeight = "";
+            maximizeBtn.title = "Maximize preview";
+          }
+        });
     const toast = document.getElementById("toast");
     const mdCardsContainer = document.getElementById("mdCardsContainer");
 
