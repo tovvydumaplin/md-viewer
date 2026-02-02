@@ -1,6 +1,10 @@
 {
   "files": [
     {
+      "path": "Markdown/Developer/API-BUILDING-CHEAT-SHEET.md",
+      "folder": "Developer"
+    },
+    {
       "path": "Markdown/Developer/CODING-STANDARDS.md",
       "folder": "Developer"
     },
