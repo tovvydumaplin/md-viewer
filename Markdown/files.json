@@ -47,6 +47,10 @@
     {
       "path": "Markdown/Management/Server-hosting.md",
       "folder": "Management"
+    },
+    {
+      "path": "Markdown/Schema Dev/SUBMISSION_SYSTEM_SCHEMA_GUIDE.md",
+      "folder": "Schema Dev"
     }
   ]
 }
