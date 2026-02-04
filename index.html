@@ -227,6 +227,22 @@
       opacity:1;
       transform:translateX(-50%) translateY(0);
     }
+    .loadingSpinner{
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.22);
+      border-top-color: #93c5fd;
+      animation: spin .75s linear infinite;
+      flex: 0 0 auto;
+    }
+    [data-theme="light"] .loadingSpinner{
+      border-color: rgba(0,0,0,.16);
+      border-top-color: #3b82f6;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
 
     /* ✅ Print fix: print ONLY preview; force white page; remove overflow/grid constraints */
     @media print {
@@ -389,8 +405,20 @@
         <!-- Left column -->
         <div class="editorCol md:h-full flex flex-col gap-3 min-h-0">
           <!-- Cards (desktop: 70% height) (mobile: fixed-ish height) -->
-          <div class="min-h-0 overflow-hidden border md:h-[58vh]"
+          <div class="min-h-0 overflow-hidden border md:h-[58vh] flex flex-col"
                style="border-color: var(--border); background: var(--sidebar);">
+            <div class="p-2 pb-1 border-b" style="border-color: var(--border);">
+              <div class="flex items-center gap-2">
+                <input
+                  id="mdCardsSearch"
+                  type="search"
+                  placeholder="Search files... (Ctrl/Cmd+K)"
+                  class="w-full rounded-md border px-2 py-1.5 text-xs outline-none"
+                  style="border-color: var(--border); background: var(--panel); color: var(--text);"
+                />
+              </div>
+              <div id="mdCardsSearchCount" class="text-[10px] mt-1 opacity-65">0 files</div>
+            </div>
             <div id="mdCardsContainer" class="h-[38vh] md:h-full overflow-y-auto overflow-x-hidden p-2 box-border"></div>
           </div>
 
@@ -427,6 +455,15 @@ Whether you’re here to explore, contribute, or maintain the project — you’
             <div id="preview"
                  class="h-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden border p-6 max-[900px]:max-h-[70vh]"
                  style="border-color: var(--border); background: var(--panel);"></div>
+            <div id="previewLoading"
+                 class="hidden absolute inset-0 z-10 items-center justify-center pointer-events-none"
+                 style="background: rgba(2,6,23,.18);">
+              <div class="flex items-center gap-2 px-3 py-2 rounded-full border text-xs"
+                   style="border-color: var(--border); background: var(--panel); color: var(--text);">
+                <span class="loadingSpinner" aria-hidden="true"></span>
+                <span>Loading markdown...</span>
+              </div>
+            </div>
             <!-- Floating buttons -->
             <div id="previewActions" class="hidden absolute top-3 right-3 flex gap-2 z-20">
               <button id="downloadBtn" title="Download as PDF" class="icon-btn">
@@ -488,6 +525,7 @@ Whether you’re here to explore, contribute, or maintain the project — you’
 
     const md = document.getElementById("md");
     const preview = document.getElementById("preview");
+    const previewLoading = document.getElementById("previewLoading");
     const previewContainer = document.getElementById("previewContainer");
     const previewActions = document.getElementById("previewActions");
     const downloadBtn = document.getElementById("downloadBtn");
@@ -560,11 +598,71 @@ Whether you’re here to explore, contribute, or maintain the project — you’
         });
     const toast = document.getElementById("toast");
     const mdCardsContainer = document.getElementById("mdCardsContainer");
+    const mdCardsSearch = document.getElementById("mdCardsSearch");
+    const mdCardsSearchCount = document.getElementById("mdCardsSearchCount");
 
     let mdFiles = [];
+    let mdSearchTerm = "";
+    let isIndexingCards = false;
+    let cardRenderQueued = false;
+
+    function setPreviewLoading(isLoading) {
+      if (isLoading) {
+        previewLoading.classList.remove("hidden");
+        previewLoading.classList.add("flex");
+      } else {
+        previewLoading.classList.add("hidden");
+        previewLoading.classList.remove("flex");
+      }
+    }
+
+    function queueCardRender() {
+      if (cardRenderQueued) return;
+      cardRenderQueued = true;
+      requestAnimationFrame(() => {
+        cardRenderQueued = false;
+        renderMarkdownCards();
+      });
+    }
+
+    async function hydrateMarkdownMeta(file) {
+      try {
+        const res = await fetch(file.path);
+        if (!res.ok) throw new Error(`Failed to fetch ${file.path}`);
+        const text = await res.text();
+        const lines = text.split(/\r?\n/);
+        file.title = lines.find(l => l.trim().startsWith('#'))?.replace(/^#+\s*/, '') || file.name;
+
+        const contentLines = lines.filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('---'));
+        let previewParts = [];
+
+        for (const line of contentLines.slice(0, 3)) {
+          const cleaned = line
+            .replace(/\*\*([^*]+)\*\*/g, '$1')
+            .replace(/\*([^*]+)\*/g, '$1')
+            .replace(/__([^_]+)__/g, '$1')
+            .replace(/_([^_]+)_/g, '$1')
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            .replace(/`([^`]+)`/g, '$1')
+            .trim();
+
+          if (cleaned) previewParts.push(cleaned);
+          if (previewParts.length >= 2) break;
+        }
+
+        file.preview = previewParts.join(' - ').substring(0, 100);
+      } catch {
+        file.title = file.name;
+        file.preview = 'Preview unavailable';
+      } finally {
+        file.isLoadingMeta = false;
+      }
+    }
 
     async function loadMarkdownFiles() {
       mdFiles = [];
+      isIndexingCards = true;
+      renderMarkdownCards();
       let filePaths = [];
 
       try {
@@ -583,53 +681,69 @@ Whether you’re here to explore, contribute, or maintain the project — you’
         ];
       }
 
-      for (const path of filePaths) {
+      mdFiles = filePaths.map((path) => {
         const parts = path.split('/');
         const filename = parts[parts.length - 1];
         const folder = parts[parts.length - 2];
+        return {
+          name: filename,
+          path,
+          folder,
+          title: filename,
+          preview: 'Loading preview...',
+          isLoadingMeta: true
+        };
+      });
 
-        const file = { name: filename, path, folder };
+      renderMarkdownCards();
 
-        try {
-          const res = await fetch(file.path);
-          const text = await res.text();
-          const lines = text.split(/\r?\n/);
-          file.title = lines.find(l => l.trim().startsWith('#'))?.replace(/^#+\s*/, '') || file.name;
-
-          const contentLines = lines.filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('---'));
-          let previewParts = [];
-
-          for (const line of contentLines.slice(0, 3)) {
-            let cleaned = line
-              .replace(/\*\*([^*]+)\*\*/g, '$1')
-              .replace(/\*([^*]+)\*/g, '$1')
-              .replace(/__([^_]+)__/g, '$1')
-              .replace(/_([^_]+)_/g, '$1')
-              .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-              .replace(/`([^`]+)`/g, '$1')
-              .trim();
-
-            if (cleaned) previewParts.push(cleaned);
-            if (previewParts.length >= 2) break;
-          }
-
-          file.preview = previewParts.join(' • ').substring(0, 100);
-        } catch {
-          file.title = file.name;
-          file.preview = '';
-        }
-
-        mdFiles.push(file);
+      for (const file of mdFiles) {
+        await hydrateMarkdownMeta(file);
+        queueCardRender();
       }
 
+      isIndexingCards = false;
       renderMarkdownCards();
     }
 
     function renderMarkdownCards() {
       mdCardsContainer.innerHTML = '';
+      const query = mdSearchTerm.trim().toLowerCase();
+      const filteredFiles = query
+        ? mdFiles.filter((file) => {
+            const haystack = `${file.title} ${file.name} ${file.folder} ${file.preview}`.toLowerCase();
+            return haystack.includes(query);
+          })
+        : mdFiles;
+
+      const loadedCount = mdFiles.filter(file => !file.isLoadingMeta).length;
+      if (query) {
+        mdCardsSearchCount.textContent = isIndexingCards
+          ? `${filteredFiles.length} of ${mdFiles.length} files - indexed ${loadedCount}/${mdFiles.length}`
+          : `${filteredFiles.length} of ${mdFiles.length} files`;
+      } else {
+        mdCardsSearchCount.textContent = isIndexingCards
+          ? `${mdFiles.length} files - indexed ${loadedCount}/${mdFiles.length}`
+          : `${mdFiles.length} files`;
+      }
+
+      if (!filteredFiles.length) {
+        if (isIndexingCards && !mdFiles.length) {
+          const loading = document.createElement('div');
+          loading.className = "text-xs opacity-70 p-3 flex items-center gap-2";
+          loading.innerHTML = '<span class="loadingSpinner" aria-hidden="true"></span><span>Loading files...</span>';
+          mdCardsContainer.appendChild(loading);
+          return;
+        }
+        const empty = document.createElement('div');
+        empty.className = "text-xs opacity-65 p-3";
+        empty.textContent = `No files match "${mdSearchTerm.trim()}".`;
+        mdCardsContainer.appendChild(empty);
+        return;
+      }
 
       const grouped = {};
-      mdFiles.forEach(file => {
+      filteredFiles.forEach(file => {
         if (!grouped[file.folder]) grouped[file.folder] = [];
         grouped[file.folder].push(file);
       });
@@ -657,26 +771,43 @@ Whether you’re here to explore, contribute, or maintain the project — you’
             card.style.transform = "translateX(0)";
           });
 
-          card.innerHTML = `
-            <div class="text-[13px] font-semibold mb-1">${file.title}</div>
-            <div class="text-[11px] opacity-65 leading-snug">${file.preview}</div>
-          `;
+          if (file.isLoadingMeta) {
+            card.innerHTML = `
+              <div class="flex items-center gap-2 mb-1">
+                <span class="loadingSpinner" aria-hidden="true"></span>
+                <div class="text-[12px] font-semibold opacity-80">${file.name}</div>
+              </div>
+              <div class="text-[11px] opacity-60 leading-snug">Loading preview...</div>
+            `;
+          } else {
+            card.innerHTML = `
+              <div class="text-[13px] font-semibold mb-1">${file.title}</div>
+              <div class="text-[11px] opacity-65 leading-snug">${file.preview}</div>
+            `;
+          }
           card.addEventListener('click', () => loadMarkdownFile(globalIdx));
           mdCardsContainer.appendChild(card);
         });
       });
     }
 
-    function loadMarkdownFile(idx) {
+    async function loadMarkdownFile(idx) {
       const file = mdFiles[idx];
-      fetch(file.path)
-        .then(res => res.text())
-        .then(mdText => {
-          md.value = mdText;
-          render();
-          notify(`Loaded: ${file.title}`);
-        })
-        .catch(() => notify('Failed to load file'));
+      if (!file) return;
+
+      setPreviewLoading(true);
+      try {
+        const res = await fetch(file.path);
+        if (!res.ok) throw new Error(`Failed to load ${file.path}`);
+        const mdText = await res.text();
+        md.value = mdText;
+        render();
+        notify(`Loaded: ${file.title || file.name}`);
+      } catch {
+        notify('Failed to load file');
+      } finally {
+        setPreviewLoading(false);
+      }
     }
 
     const copyMd = document.getElementById("copyMd");
@@ -722,6 +853,28 @@ Whether you’re here to explore, contribute, or maintain the project — you’
     copyHtmlMobile.addEventListener('click', () => { closeMenuFn(); copyHtml.click(); });
     copyMdMobile.addEventListener('click', () => { closeMenuFn(); copyMd.click(); });
     clearMobile.addEventListener('click', () => { closeMenuFn(); clear.click(); });
+
+    mdCardsSearch.addEventListener('input', () => {
+      mdSearchTerm = mdCardsSearch.value;
+      renderMarkdownCards();
+    });
+
+    mdCardsSearch.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        mdCardsSearch.value = '';
+        mdSearchTerm = '';
+        renderMarkdownCards();
+        mdCardsSearch.blur();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        mdCardsSearch.focus();
+        mdCardsSearch.select();
+      }
+    });
 
     // Textarea expand/collapse on mobile
     const textarea = document.getElementById('md');
