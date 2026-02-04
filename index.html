@@ -338,7 +338,7 @@
           class="rounded-lg border px-3 py-2 text-xs active:translate-y-px transition"
           style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
         >Print to PDF</button>
-
+        
         <button id="copyPlainText" type="button" class="hidden"
           class="rounded-lg border px-3 py-2 text-xs active:translate-y-px transition"
           style="border-color: var(--border); background: rgba(255,255,255,.06); color: var(--text);"
@@ -448,6 +448,10 @@ Whether you’re here to explore, contribute, or maintain the project — you’
               <div class="text-[11px] opacity-65">Click a pill to jump</div>
             </div>
             <div id="tocList" class="flex gap-2 flex-wrap" style="scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) var(--scroll-track);"></div>
+          </div>
+          <div id="readingProgressTrack" class="shrink-0 h-1 rounded-full overflow-hidden border"
+               style="border-color: var(--border); background: rgba(255,255,255,.08);">
+            <div id="readingProgressBar" class="h-full transition-all duration-150" style="width: 0%; background: #60a5fa;"></div>
           </div>
 
           <!-- Preview -->
@@ -600,11 +604,29 @@ Whether you’re here to explore, contribute, or maintain the project — you’
     const mdCardsContainer = document.getElementById("mdCardsContainer");
     const mdCardsSearch = document.getElementById("mdCardsSearch");
     const mdCardsSearchCount = document.getElementById("mdCardsSearchCount");
+    const readingProgressTrack = document.getElementById("readingProgressTrack");
+    const readingProgressBar = document.getElementById("readingProgressBar");
 
     let mdFiles = [];
     let mdSearchTerm = "";
+    let activeFilePath = "";
     let isIndexingCards = false;
     let cardRenderQueued = false;
+    const collapsedFoldersStorageKey = "mdViewerCollapsedFolders";
+    let collapsedFolders = {};
+
+    try {
+      collapsedFolders = JSON.parse(localStorage.getItem(collapsedFoldersStorageKey) || "{}");
+      if (!collapsedFolders || typeof collapsedFolders !== "object") collapsedFolders = {};
+    } catch {
+      collapsedFolders = {};
+    }
+
+    function saveCollapsedFolders() {
+      try {
+        localStorage.setItem(collapsedFoldersStorageKey, JSON.stringify(collapsedFolders));
+      } catch {}
+    }
 
     function setPreviewLoading(isLoading) {
       if (isLoading) {
@@ -614,6 +636,24 @@ Whether you’re here to explore, contribute, or maintain the project — you’
         previewLoading.classList.add("hidden");
         previewLoading.classList.remove("flex");
       }
+    }
+
+    function updateReadingProgress() {
+      if (!readingProgressBar) return;
+      const hasContent = preview.textContent.trim().length > 0;
+      if (!hasContent) {
+        readingProgressBar.style.width = "0%";
+        return;
+      }
+
+      const maxScroll = preview.scrollHeight - preview.clientHeight;
+      if (maxScroll <= 0) {
+        readingProgressBar.style.width = "100%";
+        return;
+      }
+
+      const ratio = Math.min(1, Math.max(0, preview.scrollTop / maxScroll));
+      readingProgressBar.style.width = `${(ratio * 100).toFixed(1)}%`;
     }
 
     function queueCardRender() {
@@ -706,6 +746,96 @@ Whether you’re here to explore, contribute, or maintain the project — you’
       renderMarkdownCards();
     }
 
+    function setFolderHeaderLabel(folderHeader, folderName, fileCount, isCollapsed) {
+      folderHeader.textContent = `${isCollapsed ? "[+]" : "[-]"} ${folderName} (${fileCount})`;
+    }
+
+    function setFolderBodyState(folderBody, isCollapsed, shouldAnimate) {
+      folderBody.dataset.collapsed = isCollapsed ? "true" : "false";
+      folderBody.style.overflow = "hidden";
+      folderBody.style.transition = shouldAnimate
+        ? "max-height 220ms cubic-bezier(.4,0,.2,1), opacity 180ms ease"
+        : "none";
+
+      if (isCollapsed) {
+        if (!shouldAnimate) {
+          folderBody.style.maxHeight = "0px";
+          folderBody.style.opacity = "0";
+          folderBody.style.pointerEvents = "none";
+          return;
+        }
+        const currentHeight = folderBody.scrollHeight;
+        folderBody.style.maxHeight = `${currentHeight}px`;
+        folderBody.style.opacity = "1";
+        folderBody.style.pointerEvents = "auto";
+        requestAnimationFrame(() => {
+          folderBody.style.maxHeight = "0px";
+          folderBody.style.opacity = "0";
+          folderBody.style.pointerEvents = "none";
+        });
+        return;
+      }
+
+      folderBody.style.pointerEvents = "auto";
+      if (!shouldAnimate) {
+        folderBody.style.maxHeight = "none";
+        folderBody.style.opacity = "1";
+        return;
+      }
+
+      folderBody.style.maxHeight = "0px";
+      folderBody.style.opacity = "0";
+      requestAnimationFrame(() => {
+        const targetHeight = folderBody.scrollHeight;
+        folderBody.style.maxHeight = `${targetHeight}px`;
+        folderBody.style.opacity = "1";
+      });
+      const onTransitionEnd = (event) => {
+        if (event.propertyName !== "max-height") return;
+        folderBody.style.maxHeight = "none";
+        folderBody.removeEventListener("transitionend", onTransitionEnd);
+      };
+      folderBody.addEventListener("transitionend", onTransitionEnd);
+    }
+
+    function updateCollapsedHintState() {
+      const existingHint = mdCardsContainer.querySelector('[data-role="collapsed-hint"]');
+      const query = mdSearchTerm.trim();
+      if (query) {
+        if (existingHint) existingHint.remove();
+        return;
+      }
+
+      const folderBodies = Array.from(mdCardsContainer.querySelectorAll('[data-folder-body="true"]'));
+      const hasFolders = folderBodies.length > 0;
+      const allCollapsed = hasFolders && folderBodies.every((el) => el.dataset.collapsed === "true");
+
+      if (allCollapsed) {
+        if (!existingHint) {
+          const allCollapsedHint = document.createElement('div');
+          allCollapsedHint.className = "text-xs opacity-65 p-3";
+          allCollapsedHint.textContent = "All folders are collapsed. Click [+] to expand.";
+          allCollapsedHint.dataset.role = "collapsed-hint";
+          mdCardsContainer.appendChild(allCollapsedHint);
+        }
+        return;
+      }
+
+      if (existingHint) existingHint.remove();
+    }
+
+    function setCardVisualState(card, isActive, isHover) {
+      if (isActive) {
+        card.style.background = isHover ? "rgba(59,130,246,.22)" : "rgba(59,130,246,.14)";
+        card.style.boxShadow = "inset 3px 0 0 #3b82f6";
+        card.style.transform = isHover ? "translateX(4px)" : "translateX(0)";
+        return;
+      }
+      card.style.background = isHover ? "rgba(147,197,253,.08)" : "transparent";
+      card.style.boxShadow = "none";
+      card.style.transform = isHover ? "translateX(4px)" : "translateX(0)";
+    }
+
     function renderMarkdownCards() {
       mdCardsContainer.innerHTML = '';
       const query = mdSearchTerm.trim().toLowerCase();
@@ -749,10 +879,34 @@ Whether you’re here to explore, contribute, or maintain the project — you’
       });
 
       Object.keys(grouped).sort().forEach(folder => {
-        const folderHeader = document.createElement('div');
-        folderHeader.className = "text-[11px] font-bold uppercase opacity-60 mx-2 mt-3 mb-2 tracking-wide";
-        folderHeader.textContent = folder;
+        const canCollapse = !query;
+        const isCollapsed = canCollapse && !!collapsedFolders[folder];
+        const fileCount = grouped[folder].length;
+
+        const folderHeader = document.createElement('button');
+        folderHeader.type = "button";
+        folderHeader.className = "w-full text-left text-[11px] font-bold uppercase opacity-70 mx-1 mt-3 mb-2 tracking-wide px-2 py-1 rounded";
+        folderHeader.style.color = "var(--text)";
+        folderHeader.style.background = "rgba(255,255,255,.04)";
+        setFolderHeaderLabel(folderHeader, folder, fileCount, isCollapsed);
+
+        if (canCollapse) {
+          folderHeader.addEventListener('click', () => {
+            const nextCollapsed = !collapsedFolders[folder];
+            collapsedFolders[folder] = nextCollapsed;
+            saveCollapsedFolders();
+            setFolderHeaderLabel(folderHeader, folder, fileCount, nextCollapsed);
+            setFolderBodyState(folderBody, nextCollapsed, true);
+            updateCollapsedHintState();
+          });
+        } else {
+          folderHeader.disabled = true;
+          folderHeader.style.cursor = "default";
+        }
+
         mdCardsContainer.appendChild(folderHeader);
+        const folderBody = document.createElement('div');
+        folderBody.dataset.folderBody = "true";
 
         grouped[folder].forEach((file) => {
           const globalIdx = mdFiles.indexOf(file);
@@ -761,14 +915,15 @@ Whether you’re here to explore, contribute, or maintain the project — you’
           card.className =
             "cursor-pointer select-none border-b last:border-b-0 px-4 py-3 transition-all duration-200";
           card.style.borderColor = "var(--border)";
+          const isActiveCard = file.path === activeFilePath;
+          card.setAttribute("aria-current", isActiveCard ? "true" : "false");
+          setCardVisualState(card, isActiveCard, false);
 
           card.addEventListener('mouseenter', () => {
-            card.style.background = "rgba(147,197,253,.08)";
-            card.style.transform = "translateX(4px)";
+            setCardVisualState(card, file.path === activeFilePath, true);
           });
           card.addEventListener('mouseleave', () => {
-            card.style.background = "transparent";
-            card.style.transform = "translateX(0)";
+            setCardVisualState(card, file.path === activeFilePath, false);
           });
 
           if (file.isLoadingMeta) {
@@ -786,14 +941,21 @@ Whether you’re here to explore, contribute, or maintain the project — you’
             `;
           }
           card.addEventListener('click', () => loadMarkdownFile(globalIdx));
-          mdCardsContainer.appendChild(card);
+          folderBody.appendChild(card);
         });
+
+        mdCardsContainer.appendChild(folderBody);
+        setFolderBodyState(folderBody, isCollapsed, false);
       });
+
+      updateCollapsedHintState();
     }
 
     async function loadMarkdownFile(idx) {
       const file = mdFiles[idx];
       if (!file) return;
+      activeFilePath = file.path;
+      renderMarkdownCards();
 
       setPreviewLoading(true);
       try {
@@ -802,6 +964,8 @@ Whether you’re here to explore, contribute, or maintain the project — you’
         const mdText = await res.text();
         md.value = mdText;
         render();
+        preview.scrollTop = 0;
+        updateReadingProgress();
         notify(`Loaded: ${file.title || file.name}`);
       } catch {
         notify('Failed to load file');
@@ -927,10 +1091,14 @@ Whether you’re here to explore, contribute, or maintain the project — you’
         toc.style.background = "rgba(241,245,249,.95)";
         toast.style.background = "rgba(241,245,249,.98)";
         toast.style.color = "#1e293b";
+        if (readingProgressTrack) readingProgressTrack.style.background = "rgba(15,23,42,.08)";
+        if (readingProgressBar) readingProgressBar.style.background = "#2563eb";
       } else {
         toc.style.background = "rgba(2,6,23,.55)";
         toast.style.background = "rgba(2,6,23,.92)";
         toast.style.color = "#e5e7eb";
+        if (readingProgressTrack) readingProgressTrack.style.background = "rgba(255,255,255,.08)";
+        if (readingProgressBar) readingProgressBar.style.background = "#60a5fa";
       }
     }
     applyThemeSurfaces();
@@ -966,6 +1134,7 @@ Whether you’re here to explore, contribute, or maintain the project — you’
       h.scrollIntoView({ behavior:"smooth", block:"start" });
       h.classList.add("highlightJump");
       setTimeout(() => h.classList.remove("highlightJump"), 900);
+      setTimeout(updateReadingProgress, 220);
     }
 
     function buildTOC(){
@@ -1036,6 +1205,7 @@ Whether you’re here to explore, contribute, or maintain the project — you’
       printPdf.disabled = !hasText;
 
       buildTOC();
+      updateReadingProgress();
     }
 
     async function copyText(text, label){
@@ -1064,6 +1234,8 @@ Whether you’re here to explore, contribute, or maintain the project — you’
     }
 
     md.addEventListener("input", render);
+    preview.addEventListener("scroll", updateReadingProgress);
+    window.addEventListener("resize", updateReadingProgress);
 
     printPdf.addEventListener("click", () => {
       if (!md.value.trim()) return;
